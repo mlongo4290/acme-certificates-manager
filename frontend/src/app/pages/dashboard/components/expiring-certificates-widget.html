@@ -1,0 +1,34 @@
+<p-card class="col-span-12 xl:col-span-6">
+    <ng-template #subtitle>
+        <span translate>dashboard.expiringCertificates.title</span>
+    </ng-template>
+
+    <p-table [value]="expiringCertificates" [loading]="loading" responsiveLayout="scroll">
+        <ng-template #header>
+            <tr>
+                <th translate>dashboard.expiringCertificates.domain</th>
+                <th translate>dashboard.expiringCertificates.expiryDate</th>
+                <th translate>dashboard.expiringCertificates.daysRemaining</th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-cert>
+            <tr>
+                <td>{{ cert.domain }}</td>
+                <td>{{ cert.expiryDate | date:'shortDate':undefined:translateService.getCurrentLang() }}</td>
+                <td>
+                    <span
+                        [class]="cert.daysRemaining <= 7 ? 'text-red-500 font-semibold' : cert.daysRemaining <= 14 ? 'text-orange-500 font-semibold' : ''">
+                        {{ cert.daysRemaining }}
+                    </span>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="4" class="text-center py-5">
+                    <span class="text-muted-color" translate>dashboard.expiringCertificates.noExpiring</span>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</p-card>

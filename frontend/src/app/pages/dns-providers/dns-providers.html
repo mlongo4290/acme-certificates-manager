@@ -1,0 +1,200 @@
+<div class="card">
+    <h2 class="mb-4">{{ 'dnsProviders.title' | translate }}</h2>
+    <p class="text-surface-600 dark:text-surface-400 mb-6">{{ 'dnsProviders.description' | translate }}</p>
+
+    <div class="flex justify-content-between align-items-center mb-5 gap-3">
+        <div>
+            <p-button [label]="'dnsProviders.create' | translate" icon="pi pi-plus" (onClick)="showCreateDialog()"
+                severity="primary">
+            </p-button>
+        </div>
+    </div>
+
+    <p-table #dt [value]="providers" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [loading]="loading"
+        [paginator]="true" [rows]="10" [totalRecords]="totalRecords" [rowsPerPageOptions]="[10, 25, 50]"
+        [showCurrentPageReport]="true" [currentPageReportTemplate]="'currentPageReportTemplate' | translate"
+        [filterDelay]="300" sortField="domain" [sortOrder]="1" styleClass="p-datatable-striped">
+
+        <ng-template #header>
+            <tr>
+                <th pSortableColumn="name" [style]="{ 'min-width': '200px' }">
+                    {{ 'dnsProviders.name' | translate }}
+                    <p-sortIcon field="name" />
+                    <p-columnFilter type="text" field="name" display="menu" matchMode="contains" [showMatchModes]="true"
+                        [showOperator]="true" [showAddButton]="true" />
+                </th>
+                <th [style]="{ 'min-width': '200px' }">
+                    {{ 'dnsProviders.providerDescription' | translate }}
+                    <p-columnFilter type="text" field="description" display="menu" matchMode="contains"
+                        [showMatchModes]="true" [showOperator]="true" [showAddButton]="true" />
+                </th>
+                <th [style]="{ 'min-width': '120px' }">{{ 'dnsProviders.credentialsCount' | translate }}</th>
+                <th pSortableColumn="enabled" [style]="{ 'min-width': '120px' }">
+                    {{ 'common.status' | translate }}
+                    <p-sortIcon field="enabled" />
+                    <p-columnFilter field="enabled" matchMode="equals" display="menu" operator="or"
+                        [showMatchModes]="false" [showOperator]="false" [showAddButton]="true">
+                        <ng-template #filter let-value let-filter="filterCallback">
+                            <p-multiselect [ngModel]="value" [options]="getStatusOptions()"
+                                (ngModelChange)="filter($event)" class="w-full">
+                                <ng-template let-option #item>
+                                    <p-tag [value]="option.label" [severity]="option.value ? 'success' : 'secondary'" />
+                                </ng-template>
+                            </p-multiselect>
+                        </ng-template>
+                    </p-columnFilter>
+                </th>
+                <th [style]="{ 'min-width': '150px' }">{{ 'common.actions' | translate }}</th>
+            </tr>
+        </ng-template>
+
+        <ng-template #body let-provider>
+            <tr>
+                <td>
+                    <span class="font-semibold">{{ provider.name }}</span>
+                </td>
+                <td>
+                    <span class="text-sm text-gray-600">{{ provider.description || '-' }}</span>
+                </td>
+                <td>
+                    <span class="text-sm">{{ provider.credentials ? Object.keys(provider.credentials).length : 0 }}
+                        fields</span>
+                </td>
+                <td>
+                    <p-tag [value]="provider.enabled ? ('common.enabled' | translate) : ('common.disabled' | translate)"
+                        [severity]="provider.enabled ? 'success' : 'secondary'" />
+                </td>
+                <td>
+                    <div class="flex gap-2">
+                        <p-button icon="pi pi-play" [pTooltip]="'dnsProviders.test' | translate"
+                            (click)="testProvider(provider)" [disabled]="saving" severity="info" [text]="true" />
+
+                        <p-button icon="pi pi-pencil" [pTooltip]="'dnsProviders.edit' | translate"
+                            (click)="showEditDialog(provider)" [disabled]="saving" severity="secondary" [text]="true" />
+
+                        <p-button icon="pi pi-trash" [pTooltip]="'common.delete' | translate"
+                            (click)="deleteProvider(provider)" [disabled]="saving" severity="danger" [text]="true" />
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="5" class="text-center">
+                    {{ 'dnsProviders.noProviders' | translate }}
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<!-- Create/Edit Dialog -->
+<p-dialog [(visible)]="displayDialog"
+    [header]="isNewProvider ? ('dnsProviders.create' | translate) : ('dnsProviders.edit' | translate)" [modal]="true"
+    [style]="{ width: '700px' }" [draggable]="false" [resizable]="false">
+
+    <div class="flex flex-col gap-4">
+        <!-- Name -->
+        <div class="flex flex-col gap-2">
+            <label for="name" class="font-semibold">{{ 'dnsProviders.name' | translate }} *</label>
+            <input id="name" type="text" pInputText [(ngModel)]="providerForm.name" placeholder="Cloudflare Production"
+                class="w-full" />
+            <small class="text-gray-500">{{ 'dnsProviders.hints.name' | translate }}</small>
+        </div>
+
+        <!-- Provider Type -->
+        <div class="flex flex-col gap-2">
+            <label for="type" class="font-semibold">{{ 'dnsProviders.providerType' | translate }} *</label>
+            <p-select id="type" [(ngModel)]="providerForm.type" [options]="availableProviderTypes"
+                placeholder="{{ 'dnsProviders.placeholders.selectProviderType' | translate }}"
+                (onChange)="onProviderTypeChange()" [disabled]="!isNewProvider" optionLabel="label" optionValue="value"
+                class="w-full"></p-select>
+            @if (!isNewProvider) {
+            <small class="text-orange-600">
+                <i class="pi pi-lock mr-1"></i>
+                {{ 'dnsProviders.typeLocked' | translate }}
+            </small>
+            } @else {
+            <small class="text-gray-500">{{ 'dnsProviders.hints.providerType' | translate }}</small>
+            }
+        </div>
+
+        <!-- Description -->
+        <div class="flex flex-col gap-2">
+            <label for="description" class="font-semibold">{{ 'dnsProviders.providerDescription' | translate
+                }}</label>
+            <textarea id="description" pTextarea [(ngModel)]="providerForm.description"
+                placeholder="Optional description" rows="2" class="w-full"></textarea>
+        </div>
+
+        <!-- DNS Propagation Time -->
+        <div class="flex flex-col gap-2">
+            <label for="dnsPropagationTime" class="font-semibold">{{ 'dnsProviders.dnsPropagationTime' | translate
+                }}</label>
+            <p-inputNumber id="dnsPropagationTime" [(ngModel)]="providerForm.dnsPropagationTime" [min]="0" [max]="600"
+                suffix=" {{ 'common.seconds' | translate }}" class="w-full" />
+            <small class="text-gray-500">{{ 'dnsProviders.dnsPropagationHint' | translate }}</small>
+        </div>
+
+        <!-- Credentials (Type-specific fields) -->
+        <div class="flex flex-col gap-2">
+            <label class="font-semibold">{{ 'dnsProviders.credentials' | translate }}</label>
+
+            @if (providerForm.type === 'manual') {
+            <div class="p-4 bg-blue-50 border border-blue-200 rounded">
+                <p class="text-sm text-blue-700">
+                    <i class="pi pi-info-circle mr-2"></i>
+                    {{ 'dnsProviders.manualProviderInfo' | translate }}
+                </p>
+            </div>
+            }
+
+            @for (field of getCredentialTemplateForCurrentType(); track field.key) {
+            <div class="flex flex-col gap-1">
+                <label [for]="'cred-' + field.key" class="text-sm font-medium">
+                    {{ field.key }}
+                    @if (field.required) {
+                    <span class="text-red-500">*</span>
+                    }
+                </label>
+
+                @if (field.type === 'textarea') {
+                <textarea [id]="'cred-' + field.key" pTextarea [(ngModel)]="providerForm.credentials[field.key]"
+                    [placeholder]="field.placeholder" rows="4" class="w-full font-mono text-sm"></textarea>
+                } @else if (field.type === 'password') {
+                <p-password [id]="'cred-' + field.key" [(ngModel)]="providerForm.credentials[field.key]"
+                    [placeholder]="field.placeholder" [feedback]="false" [toggleMask]="true" styleClass="w-full"
+                    inputStyleClass="w-full" />
+                } @else {
+                <input [id]="'cred-' + field.key" type="text" pInputText
+                    [(ngModel)]="providerForm.credentials[field.key]" [placeholder]="field.placeholder"
+                    class="w-full" />
+                }
+
+                @if (field.hint) {
+                <small class="text-gray-500">{{ field.hint }}</small>
+                }
+            </div>
+            }
+        </div>
+
+        <!-- Enabled Toggle -->
+        <div class="flex items-center gap-3">
+            <p-toggleSwitch [(ngModel)]="providerForm.enabled" inputId="enabled" />
+            <label for="enabled" class="cursor-pointer">{{ 'common.enabled' | translate }}</label>
+        </div>
+    </div>
+
+    <ng-template #footer>
+        <div class="flex justify-end gap-2">
+            <p-button [label]="'common.cancel' | translate" icon="pi pi-times" (click)="displayDialog = false"
+                severity="secondary" [disabled]="saving" />
+            <p-button [label]="'common.save' | translate" icon="pi pi-check" (click)="saveProvider()"
+                [disabled]="saving" [loading]="saving" />
+        </div>
+    </ng-template>
+</p-dialog>
+
+<p-confirmDialog />
+<p-toast />

@@ -1,0 +1,27 @@
+<p-card class="col-span-12 xl:col-span-6">
+    <ng-template #subtitle>
+        <span translate>dashboard.recentActivity.title</span>
+    </ng-template>
+
+    @if(loading) {
+    <div class="text-center py-5">
+        <i class="pi pi-spin pi-spinner text-4xl text-muted-color"></i>
+    </div>
+    }
+    @if(!loading && activities.length === 0) {
+    <div class="text-center py-5">
+        <span class="text-muted-color" translate>dashboard.recentActivity.noActivity</span>
+    </div>
+    }
+    @if(!loading && activities.length > 0) {
+    <p-timeline [value]="activities" align="alternate">
+        <ng-template #content let-activity>
+            <div class="pb-4">
+                <div class="font-medium mb-2">{{ 'activityLog.types.' + activity.type | translate }}</div>
+                <div class="text-sm text-muted-color">{{ activity.timestamp |
+                    date:'short':undefined:translateService.getCurrentLang() }}</div>
+            </div>
+        </ng-template>
+    </p-timeline>
+    }
+</p-card>

@@ -1,0 +1,27 @@
+<mjml>
+  <mj-body>
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="20px" color="#0fbc09">Post-Issue Script Executed Successfully</mj-text>
+
+        <mj-divider border-color="#0fbc09"></mj-divider>
+
+        <mj-text>Hello,</mj-text>
+        <mj-text>The post-issue script <strong>"{{scriptName}}"</strong> has been executed successfully for certificate <strong>{{domain}}</strong>.</mj-text>
+
+        <mj-text>
+          <p><strong>Script:</strong> {{scriptName}}</p>
+          <p><strong>Domain:</strong> {{domain}}</p>
+          <p><strong>Certificate ID:</strong> {{certificateId}}</p>
+          <p>The script completed without errors.</p>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="12px" color="#888888"> ACM Certificates Manager</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

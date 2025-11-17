@@ -1,0 +1,41 @@
+const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+console.log('Initializing Python script environment...');
+
+// Check if Python is available
+try {
+    execSync('python3 --version', { stdio: 'pipe' });
+} catch (error) {
+    console.error('Python 3 is not installed or not in PATH');
+    process.exit(1);
+}
+
+// Create venv if not exists
+if (!fs.existsSync('venv')) {
+    console.log('Creating Python virtual environment...');
+    try {
+        execSync('python3 -m venv venv', { stdio: 'inherit' });
+        console.log('✓ Virtual environment created');
+    } catch (error) {
+        console.error('✗ Failed to create virtual environment:', error.message);
+        process.exit(1);
+    }
+}
+
+// Install requirements if requirements.txt exists
+if (fs.existsSync('requirements.txt')) {
+    console.log('Installing Python dependencies...');
+    const pip = process.platform === 'win32' ? 'venv\\Scripts\\pip' : 'venv/bin/pip';
+    
+    try {
+        execSync(`${pip} install -r requirements.txt`, { stdio: 'inherit' });
+        console.log('✓ Dependencies installed');
+    } catch (error) {
+        console.error('✗ Failed to install dependencies:', error.message);
+        process.exit(1);
+    }
+}
+
+console.log('✓ Initialization complete!');

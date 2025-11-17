@@ -1,0 +1,190 @@
+<div class="card">
+    <h2 class="mb-4">{{ 'scripts.title' | translate }}</h2>
+    <p class="text-surface-600 dark:text-surface-400 mb-6">{{ 'scripts.description' | translate }}</p>
+
+    <div class="flex justify-content-between align-items-center mb-5 gap-3">
+        <div class="flex gap-2">
+            <p-button [label]="'scripts.create' | translate" icon="pi pi-plus" (onClick)="showCreateDialog()"
+                severity="primary">
+            </p-button>
+            <p-button [label]="'scripts.import' | translate" icon="pi pi-upload" (onClick)="fileInput.click()"
+                severity="secondary">
+            </p-button>
+            <input #fileInput type="file" accept=".zip" (change)="importScript($event)" style="display: none" />
+        </div>
+    </div>
+
+    <!-- Scripts Table -->
+    <p-table #dt [value]="scripts" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [loading]="loading"
+        [paginator]="true" [rows]="10" [totalRecords]="totalRecords" [rowsPerPageOptions]="[10, 25, 50]"
+        [showCurrentPageReport]="true" [currentPageReportTemplate]="'currentPageReportTemplate' | translate"
+        [filterDelay]="300" sortField="domain" [sortOrder]="1" styleClass="p-datatable-striped">
+
+        <ng-template #header>
+            <tr>
+                <th pSortableColumn="name" style="min-width: 200px">
+                    Name
+                    <p-sortIcon field="name" />
+                    <p-columnFilter type="text" field="name" display="menu" />
+                </th>
+                <th pSortableColumn="path" style="min-width: 250px">
+                    Path
+                    <p-sortIcon field="path" />
+                    <p-columnFilter type="text" field="path" display="menu" />
+                </th>
+                <th>Actions</th>
+            </tr>
+        </ng-template>
+
+        <ng-template #body let-script>
+            <tr>
+                <td>{{ script.name }}</td>
+                <td class="font-mono">{{ basePath }}/{{ script.path }}/{{ script.entrypoint }}</td>
+                <td>
+                    <p-button icon="pi pi-download" (onClick)="exportScript(script)" [text]="true" severity="info"
+                        size="small" [pTooltip]="'scripts.export' | translate" />
+                    @if (script.hasInit) {
+                    <p-button icon="pi pi-play" (onClick)="runInit(script)" [text]="true" severity="success"
+                        size="small" [pTooltip]="'scripts.runInit' | translate" />
+                    }
+                    <p-button icon="pi pi-pencil" (onClick)="editScript(script)" [text]="true" severity="secondary"
+                        size="small" [pTooltip]="'scripts.edit' | translate" />
+                    <p-button icon="pi pi-trash" (onClick)="deleteScript(script)" [text]="true" severity="danger"
+                        size="small" [pTooltip]="'common.delete' | translate" />
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="5" class="text-center">{{ 'scripts.noScripts' | translate }}</td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<!-- Create/Edit Dialog -->
+<p-dialog [(visible)]="displayDialog" [header]="(isNewScript ? 'scripts.create' : 'scripts.edit') | translate"
+    [modal]="true" [draggable]="false" [resizable]="false" [style]="{ width: '800px', maxHeight: '80vh' }"
+    [closable]="true">
+
+    <div class="flex flex-col gap-4">
+        <!-- Name -->
+
+        <div class="flex flex-col gap-2">
+            <label class="font-semibold">{{ 'scripts.name' | translate }} *</label>
+            <input type="text" pInputText [(ngModel)]="scriptForm.name"
+                [placeholder]="'scripts.placeholders.name' | translate" class="w-full" />
+            <small class="text-surface-600 dark:text-surface-400">
+                {{ 'scripts.hints.name' | translate }}
+            </small>
+        </div>
+
+        <!-- Path -->
+        <div class="flex flex-col gap-2">
+            <label class="font-semibold">{{ 'scripts.path' | translate }} *</label>
+            <p-inputgroup>
+                <p-inputgroup-addon>
+                    {{ basePath }}/
+                </p-inputgroup-addon>
+
+                <input type="text" pInputText [(ngModel)]="scriptForm.path"
+                    [placeholder]="'scripts.placeholders.path' | translate" class="w-full" />
+            </p-inputgroup>
+            <small class="text-surface-600 dark:text-surface-400">
+                {{ 'scripts.hints.path' | translate }}
+            </small>
+        </div>
+
+        <!-- Entrypoint -->
+        <div class="flex flex-col gap-2">
+            <label class="font-semibold">{{ 'scripts.entrypoint' | translate }} *</label>
+            <input type="text" pInputText [(ngModel)]="scriptForm.entrypoint"
+                [placeholder]="'scripts.placeholders.entrypoint' | translate" class="w-full" />
+            <small class="text-surface-600 dark:text-surface-400">
+                {{ 'scripts.hints.entrypoint' | translate }}
+            </small>
+        </div>
+
+        <!-- Description -->
+        <div class="flex flex-col gap-2">
+            <label class="font-semibold">{{ 'scripts.scriptDescription' | translate }}</label>
+            <input type="text" pInputText [(ngModel)]="scriptForm.description" class="w-full"
+                [placeholder]="'scripts.placeholders.description' | translate" />
+            <small class="text-surface-600 dark:text-surface-400">
+                {{ 'scripts.hints.description' | translate }}
+            </small>
+        </div>
+
+        <!-- Requires SSH Key -->
+        <div class="flex items-center gap-2">
+            <p-checkbox [(ngModel)]="scriptForm.requiresSshKey" [binary]="true" inputId="requiresSshKey"></p-checkbox>
+            <label for="requiresSshKey" class="cursor-pointer">{{ 'scripts.requiresSshKey' | translate }}</label>
+        </div>
+
+        <!-- Environment Variables -->
+        <div class="flex flex-col gap-2">
+            <label class="font-semibold">{{ 'scripts.envVars' | translate }}</label>
+            <small class="text-surface-600 dark:text-surface-400">
+                {{ 'scripts.hints.envVars' | translate }}
+            </small>
+
+            <!-- Input fields for new variable -->
+            <div class="flex gap-2 mt-2 items-center">
+                <input type="text" pInputText [(ngModel)]="newEnvVarKey" [placeholder]="'scripts.varName' | translate"
+                    class="flex-1" size="small" />
+                <input type="text" pInputText [(ngModel)]="newEnvVarDescription"
+                    [placeholder]="'scripts.varDescription' | translate" class="flex-1" size="small" />
+                <div class="flex items-center gap-2">
+                    <p-checkbox [(ngModel)]="newEnvVarSensitive" [binary]="true" inputId="newVarSensitive" />
+                    <label for="newVarSensitive" class="text-sm cursor-pointer">{{ 'scripts.sensitive' | translate
+                        }}</label>
+                </div>
+                @if (editingVarIndex !== null) {
+                <p-button icon="pi pi-check" (onClick)="addEnvVar()" size="small"
+                    [disabled]="!newEnvVarKey || !newEnvVarDescription" severity="success" />
+                <p-button icon="pi pi-times" (onClick)="cancelEditEnvVar()" size="small" severity="secondary" />
+                } @else {
+                <p-button icon="pi pi-plus" (onClick)="addEnvVar()" size="small"
+                    [disabled]="!newEnvVarKey || !newEnvVarDescription" severity="secondary" />
+                }
+            </div>
+
+            <!-- List of added variables -->
+            @if (scriptForm.envVars && scriptForm.envVars.length > 0) {
+            <div class="flex flex-col gap-2 mt-2 p-3 bg-surface-50 dark:bg-surface-800 rounded">
+                @for (envVar of scriptForm.envVars; track $index) {
+                <div class="flex items-center justify-between p-2 bg-white dark:bg-surface-900 rounded border"
+                    [class.border-primary]="editingVarIndex === $index">
+                    <div class="flex flex-col flex-1">
+                        <div class="flex items-center gap-2 font-mono">
+                            <code class="text-sm font-semibold">{{ envVar.key }}</code>
+                            @if (envVar.sensitive) {
+                            <i class="pi pi-lock text-orange-500" title="{{ 'scripts.sensitive' | translate }}"></i>
+                            }
+                        </div>
+                        <small class="text-surface-600 dark:text-surface-400">{{ envVar.description }}</small>
+                    </div>
+                    <div class="flex gap-1">
+                        <p-button icon="pi pi-pencil" (onClick)="editEnvVar($index)" [text]="true" severity="secondary"
+                            size="small" />
+                        <p-button icon="pi pi-trash" (onClick)="removeEnvVar($index)" [text]="true" severity="danger"
+                            size="small" />
+                    </div>
+                </div>
+                }
+            </div>
+            }
+        </div>
+    </div>
+
+    <ng-template #footer>
+        <p-button [label]="'common.cancel' | translate" icon="pi pi-times" (onClick)="displayDialog = false"
+            [text]="true" severity="secondary" />
+        <p-button [label]="'common.save' | translate" icon="pi pi-check" (onClick)="saveScript()"
+            [disabled]="saving || !scriptForm.name || !scriptForm.path" severity="primary" />
+    </ng-template>
+</p-dialog>
+
+<p-toast />
+<p-confirmDialog />

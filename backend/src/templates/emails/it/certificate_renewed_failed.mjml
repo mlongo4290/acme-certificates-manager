@@ -1,0 +1,27 @@
+<mjml>
+  <mj-body>
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="20px" color="#F45E43">Errore nel rinnovo del certificato</mj-text>
+
+        <mj-divider border-color="#F45E43"></mj-divider>
+
+        <mj-text>Ciao,</mj-text>
+        <mj-text>Il rinnovo del certificato SSL/TLS per <strong>{{domain}}</strong> è fallito.</mj-text>
+
+        <mj-text>
+          <p><strong>Dominio:</strong> {{domain}}</p>
+          <p><strong>ID certificato:</strong> {{certificateId}}</p>
+          <p><strong>Errore:</strong> {{error}}</p>
+        </mj-text>
+
+        <mj-text><strong>Azione richiesta:</strong> Si prega di controllare la configurazione del certificato e riprovare manualmente il processo di rinnovo</mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="12px" color="#888888"> ACM Certificates Manager</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

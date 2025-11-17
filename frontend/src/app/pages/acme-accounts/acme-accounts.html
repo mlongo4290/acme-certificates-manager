@@ -1,0 +1,133 @@
+<div class="card">
+    <h2 class="mb-4">{{ 'acmeAccounts.title' | translate }}</h2>
+    <p class="text-surface-600 dark:text-surface-400 mb-6">{{ 'acmeAccounts.description' | translate }}</p>
+
+    <div class="mb-5">
+        <p-button [label]="'acmeAccounts.create' | translate" icon="pi pi-plus" (onClick)="showCreateDialog()"
+            severity="primary">
+        </p-button>
+    </div>
+
+    <p-table #dt [value]="accounts" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [loading]="loading"
+        [paginator]="true" [rows]="10" [totalRecords]="totalRecords" [rowsPerPageOptions]="[10, 25, 50]"
+        [showCurrentPageReport]="true" [currentPageReportTemplate]="'currentPageReportTemplate' | translate"
+        [filterDelay]="300" sortField="domain" [sortOrder]="1" styleClass="p-datatable-striped">
+
+        <ng-template #header>
+            <tr>
+                <th pSortableColumn="name" [style]="{ 'min-width': '200px' }">
+                    {{ 'common.name' | translate }}
+                    <p-sortIcon field="name" />
+                    <p-columnFilter type="text" field="name" display="menu" matchMode="contains" [showMatchModes]="true"
+                        [showOperator]="true" [showAddButton]="true" />
+                </th>
+                <th pSortableColumn="email" [style]="{ 'min-width': '200px' }">
+                    {{ 'auth.email' | translate }}
+                    <p-sortIcon field="email" />
+                    <p-columnFilter type="text" field="email" display="menu" matchMode="contains"
+                        [showMatchModes]="true" [showOperator]="true" [showAddButton]="true" />
+                </th>
+                <th [style]="{ 'min-width': '200px' }">{{ 'acmeAccounts.ca' | translate }}</th>
+                <th [style]="{ 'min-width': '150px' }">
+                    {{ 'common.status' | translate }}
+                    <p-columnFilter field="registeredAt" matchMode="equals" display="menu" operator="or"
+                        [showMatchModes]="false" [showOperator]="false" [showAddButton]="true">
+                        <ng-template #filter let-value let-filter="filterCallback">
+                            <p-multiselect [ngModel]="value" [options]="getStatusOptions()"
+                                (ngModelChange)="filter($event)" class="w-full">
+                                <ng-template let-option #item>
+                                    <p-tag [value]="option.label" [severity]="option.value ? 'success' : 'secondary'" />
+                                </ng-template>
+                            </p-multiselect>
+                        </ng-template>
+                    </p-columnFilter>
+                </th>
+                <th [style]="{ 'min-width': '250px' }">{{ 'common.actions' | translate }}</th>
+            </tr>
+        </ng-template>
+
+        <ng-template #body let-account>
+            <tr>
+                <td>{{ account.name }}</td>
+                <td>{{ account.email }}</td>
+                <td>{{ getCAName(account) }}</td>
+                <td>
+                    <p-tag
+                        [value]="account.registeredAt ? ('acmeAccounts.registered' | translate) : ('acmeAccounts.notRegistered' | translate)"
+                        [severity]="getSeverity(account.registeredAt)">
+                    </p-tag>
+                </td>
+                <td>
+                    <div class="flex gap-2">
+                        @if (!account.registeredAt) {
+                        <p-button icon="pi pi-user-plus" [rounded]="true" [text]="true" severity="success"
+                            (onClick)="registerAccount(account)" pTooltip="{{ 'acmeAccounts.register' | translate }}"
+                            [loading]="saving">
+                        </p-button>
+                        }
+                        <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" severity="info"
+                            (onClick)="showEditDialog(account)" pTooltip="{{ 'acmeAccounts.edit' | translate }}">
+                        </p-button>
+                        <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger"
+                            (onClick)="deleteAccount(account)" pTooltip="{{ 'acmeAccounts.delete' | translate }}">
+                        </p-button>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="5">{{ 'acmeAccounts.noAccounts' | translate }}</td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<p-dialog [(visible)]="displayDialog"
+    [header]="isNewAccount ? ('acmeAccounts.create' | translate) : ('acmeAccounts.edit' | translate)" [modal]="true"
+    [style]="{width: '600px'}" [dismissableMask]="true">
+    <div class="flex flex-col gap-4 pt-4">
+        <div>
+            <label for="name" class="block">{{ 'common.name' | translate }} *</label>
+            <input pInputText id="name" [(ngModel)]="accountForm.name" class="w-full" />
+        </div>
+
+        <div>
+            <label for="email" class="block">{{ 'auth.email' | translate }} *</label>
+            <input pInputText id="email" type="email" [(ngModel)]="accountForm.email" class="w-full" />
+        </div>
+
+        <div>
+            <label for="caId" class="block">{{ 'acmeAccounts.ca' | translate }} *</label>
+            <p-select id="caId" [(ngModel)]="accountForm.caId" [options]="cas" optionLabel="name" optionValue="_id"
+                placeholder="{{ 'acmeAccounts.selectCa' | translate }}" class="w-full" [fluid]="true">
+            </p-select>
+        </div>
+
+        <div>
+            <label for="eabKeyId" class="block mb-2">{{ 'acmeAccounts.eabKeyId' | translate }}</label>
+            <input pInputText id="eabKeyId" [(ngModel)]="accountForm.eabKeyId" class="w-full" />
+            <small class="text-surface-500 dark:text-surface-400">{{ 'acmeAccounts.eabKeyIdHint' | translate
+                }}</small>
+        </div>
+
+        <div>
+            <label for="eabHmacKey" class="block mb-2">{{ 'acmeAccounts.eabHmacKey' | translate }}</label>
+            <textarea pTextarea id="eabHmacKey" [(ngModel)]="accountForm.eabHmacKey" class="w-full" rows="3"></textarea>
+            <small class="text-surface-500 dark:text-surface-400">{{ 'acmeAccounts.eabHmacKeyHint' | translate
+                }}</small>
+        </div>
+    </div>
+
+    <ng-template #footer>
+        <p-button [label]="'common.cancel' | translate" severity="secondary" icon="pi pi-times"
+            (onClick)="displayDialog = false" [text]="true">
+        </p-button>
+        <p-button [label]="'common.save' | translate" icon="pi pi-check" (onClick)="saveAccount()" [loading]="saving">
+        </p-button>
+    </ng-template>
+</p-dialog>
+
+<p-toast />
+<p-confirmDialog />

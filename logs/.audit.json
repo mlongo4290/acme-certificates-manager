@@ -1,0 +1,30 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\longomichael\\Desktop\\apps\\acme-certificates-manager\\logs\\.audit.json",
+    "files": [
+        {
+            "date": 1761833339382,
+            "name": "C:\\Users\\longomichael\\Desktop\\apps\\acme-certificates-manager\\logs\\acm-2025-10-30.log",
+            "hash": "1c18d55b7036a4259debfbab4ff03fdd5a4ffa28d0827d33c295fe69c8a711b3"
+        },
+        {
+            "date": 1761834325560,
+            "name": "..\\logs\\acm-2025-10-30.log",
+            "hash": "f8c197e2131cbed6fa26f5a35a337fbb46eccfc5cfa48c48c2b50a0245c40e37"
+        },
+        {
+            "date": 1761894164384,
+            "name": "..\\logs\\acm-2025-10-31.log",
+            "hash": "552d9da8f050824e135704189d79b12596d541e434c326ebcdce3099beb3dc82"
+        },
+        {
+            "date": 1762155894628,
+            "name": "..\\logs\\acm-2025-11-03.log",
+            "hash": "613e1e58701df5461bb2a001576d2c23601c00964dcfa7ca169f20c169941efe"
+        }
+    ],
+    "hashType": "sha256"
+}
