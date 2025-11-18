@@ -1,0 +1,29 @@
+{
+  "name": "acme-certificates-manager",
+  "version": "1.0.0",
+  "description": "ACME Certificate Manager with automatic renewal and deployment",
+  "scripts": {
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "start:frontend": "cd frontend && npm start",
+    "start:backend": "cd backend && npm run dev",
+    "start": "concurrently \"npm run start:frontend\" \"npm run start:backend\"",
+    "build": "cd frontend && npm run build && cd ../backend && npm run build",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up",
+    "docker:down": "docker-compose down",
+    "version:sync": "node -e \"const pkg = require('./package.json'); require('fs').writeFileSync('frontend/src/app/version.ts', `// This file is auto-generated from package.json\\nexport const VERSION = '${pkg.version}';\\n`)\"",
+    "prestart": "npm run version:sync",
+    "prebuild": "npm run version:sync"
+  },
+  "keywords": [
+    "acme",
+    "certificates",
+    "ssl",
+    "automation"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

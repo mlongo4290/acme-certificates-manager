@@ -1,0 +1,25 @@
+.cert-details {
+    padding: 1rem;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.cert-details h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.issuer-link {
+    color: var(--primary-color);
+    text-decoration: underline;
+    cursor: pointer;
+
+    &:hover {
+        color: var(--p-primary-hover-color);
+    }
+}
+
+.multiline {
+    white-space: pre-line;
+}

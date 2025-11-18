@@ -1,0 +1,47 @@
+<p-card class="col-span-12 lg:col-span-6 xl:col-span-3">
+    <ng-template #subtitle>
+        <span translate>dashboard.alerts.title</span>
+    </ng-template>
+
+    @if (loading) {
+    <div class="text-center py-5">
+        <i class="pi pi-spin pi-spinner text-4xl text-muted-color"></i>
+    </div>
+    }
+
+    @if(!loading && alerts.length === 0) {
+    <div class="text-center py-5">
+        <i class="pi pi-check-circle text-5xl text-green-500 mb-3"></i>
+        <p class="text-muted-color" translate>dashboard.alerts.noAlerts</p>
+    </div>
+    }
+
+    @if(!loading && alerts.length > 0) {
+    <div class="flex flex-column gap-3">
+        @for(alert of alerts; track $index) {
+        <div class="p-4 border-round-md flex justify-content-between align-items-center" [class]="alert.severity === 'error' ? 'bg-red-50 border-1 border-red-200' : 
+                     alert.severity === 'warn' ? 'bg-orange-50 border-1 border-orange-200' : 
+                     'bg-blue-50 border-1 border-blue-200'">
+            <div class="flex align-items-center gap-3">
+                <i [class]="alert.severity === 'error' ? 'pi pi-times-circle text-3xl text-red-500' : 
+                            alert.severity === 'warn' ? 'pi pi-exclamation-triangle text-3xl text-orange-500' : 
+                            'pi pi-info-circle text-3xl text-blue-500'">
+                </i>
+                <div>
+                    <div class="font-semibold mb-1" [class]="alert.severity === 'error' ? 'text-red-700' : 
+                                 alert.severity === 'warn' ? 'text-orange-700' : 
+                                 'text-blue-700'">
+                        <span>{{ alert.message }}</span>
+                    </div>
+                    <div class="text-sm" [class]="alert.severity === 'error' ? 'text-red-600' : 
+                                 alert.severity === 'warn' ? 'text-orange-600' : 
+                                 'text-blue-600'">
+                        {{ alert.count }} <span>{{ getCountLabel(alert) }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+    </div>
+    }
+</p-card>

@@ -1,0 +1,220 @@
+<div class="flex flex-col h-full">
+    <p-tabs [value]="activeTabIndex" (onChange)="onTabChange($event)">
+        <p-tablist>
+            @for (cert of certificates; track cert.index) {
+            <p-tab [value]="cert.index">
+                <div class="flex items-center gap-2 text-center">
+                    <span class="font-semibold">{{ cert.commonName || cert.organization || 'Unknown' }}</span>
+                </div>
+            </p-tab>
+            }
+        </p-tablist>
+        <p-tabpanels>
+            @for (cert of certificates; track cert.index) {
+            <p-tabpanel [value]="cert.index">
+                <div class="cert-details">
+                    <!-- Subject Section -->
+                    <div class="mt-2 mb-2">
+                        <h3>{{ 'certificates.viewer.subject' | translate }}</h3>
+                        <div class="flex flex-col gap-2">
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ 'certificates.viewer.commonName' | translate }}:</span>
+                                <span>{{ cert.commonName }}</span>
+                            </div>
+                            @if (cert.organization) {
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ 'certificates.viewer.organization' | translate }}:</span>
+                                <span>{{ cert.organization }}</span>
+                            </div>
+                            }
+                            @if (cert.organizationalUnit) {
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ 'certificates.viewer.organizationalUnit' | translate
+                                    }}:</span>
+                                <span>{{ cert.organizationalUnit }}</span>
+                            </div>
+                            }
+                            @if (cert.locality) {
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ 'certificates.viewer.locality' | translate }}:</span>
+                                <span>{{ cert.locality }}</span>
+                            </div>
+                            }
+                            @if (cert.state) {
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ 'certificates.viewer.state' | translate }}:</span>
+                                <span>{{ cert.state }}</span>
+                            </div>
+                            }
+                            @if (cert.country) {
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ 'certificates.viewer.country' | translate }}:</span>
+                                <span>{{ cert.country }}</span>
+                            </div>
+                            }
+                        </div>
+                        <p-divider />
+                    </div>
+
+                    <!-- Issuer Section -->
+                    <div class="mt-2 mb-2">
+                        <h3>{{ 'certificates.viewer.issuer' | translate }}</h3>
+                        <div class="flex flex-col gap-2">
+                            @if (cert.issuerCountry) {
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ 'certificates.viewer.country' | translate }}:</span>
+                                <span>{{ cert.issuerCountry }}</span>
+                            </div>
+                            }
+                            @if (cert.issuerOrganization) {
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ 'certificates.viewer.organization' | translate }}:</span>
+                                <span>{{ cert.issuerOrganization }}</span>
+                            </div>
+                            }
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ 'certificates.viewer.commonName' | translate }}:</span>
+                                @if (cert.issuerIndex !== undefined && cert.issuerIndex >= 0) {
+                                <a class="issuer-link" (click)="activeTabIndex = cert.issuerIndex">
+                                    {{ cert.issuerCommonName }}
+                                </a>
+                                } @else {
+                                <span>{{ cert.issuerCommonName }}</span>
+                                }
+                            </div>
+                        </div>
+                        <p-divider />
+                    </div>
+
+                    <!-- Validity Period -->
+                    <div class="mt-2 mb-2">
+                        <h3>{{ 'certificates.viewer.validity' | translate }}</h3>
+                        <div class="flex flex-col gap-2">
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ 'certificates.viewer.notBefore' | translate }}:</span>
+                                <span>{{ cert.notBefore |
+                                    date:'long':'UTC':translateService.getCurrentLang() }}</span>
+                            </div>
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ 'certificates.viewer.notAfter' | translate }}:</span>
+                                <span>{{ cert.notAfter |
+                                    date:'long':'UTC':translateService.getCurrentLang() }}</span>
+                            </div>
+                        </div>
+                        <p-divider />
+                    </div>
+
+                    <!-- Subject Alternative Names -->
+                    @if (cert.subjectAltNames.length > 0) {
+                    <div class="mt-2 mb-2">
+                        <h3>{{ 'certificates.viewer.subjectAltNames' | translate }}</h3>
+                        <div class="flex flex-col gap-2">
+                            @for (san of cert.subjectAltNames; track san.value) {
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ san.type }}:</span>
+                                <span>{{ san.value }}</span>
+                            </div>
+                            }
+                        </div>
+                        <p-divider />
+                    </div>
+                    }
+
+                    <!-- Public Key Info -->
+                    <div class="mt-2 mb-2">
+                        <h3>{{ 'certificates.viewer.publicKeyInfo' | translate }}</h3>
+                        <div class="flex flex-col gap-2">
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ 'certificates.viewer.algorithm' | translate }}:</span>
+                                <span>{{ cert.publicKeyAlgorithm }}</span>
+                            </div>
+                            @if (cert.publicKeySize) {
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ 'certificates.viewer.keySize' | translate }}:</span>
+                                <span>{{ cert.publicKeySize }} bits</span>
+                            </div>
+                            }
+                            @if (cert.publicKeyExponent) {
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ 'certificates.viewer.exponent' | translate }}:</span>
+                                <span>{{ cert.publicKeyExponent }}</span>
+                            </div>
+                            }
+                            @if (cert.publicKeyModulus) {
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ 'certificates.viewer.modulus' | translate }}:</span>
+                                <span class="font-mono multiline">{{ cert.publicKeyModulus }}</span>
+                            </div>
+                            }
+                        </div>
+                        <p-divider />
+                    </div>
+
+                    <!-- Miscellaneous -->
+                    <div class="mt-2 mb-2">
+                        <h3>{{ 'certificates.viewer.miscellaneous' | translate }}</h3>
+                        <div class="flex flex-col gap-2">
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ 'certificates.viewer.serialNumber' | translate }}:</span>
+                                <span class="font-mono">{{ cert.serialNumber }}</span>
+                            </div>
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ 'certificates.viewer.signature' | translate }}:</span>
+                                <span>{{ cert.signatureAlgorithm }}</span>
+                            </div>
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">{{ 'certificates.viewer.version' | translate }}:</span>
+                                <span>{{ cert.version }}</span>
+                            </div>
+                        </div>
+                        <p-divider />
+                    </div>
+
+                    <!-- Fingerprints -->
+                    <div class="mt-2 mb-2">
+                        <h3>{{ 'certificates.viewer.fingerprints' | translate }}</h3>
+                        <div class="flex flex-col gap-2">
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">SHA-256:</span>
+                                <span class="font-mono">{{ cert.fingerprints.sha256 }}</span>
+                            </div>
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                <span class="font-semibold">SHA-1:</span>
+                                <span class="font-mono">{{ cert.fingerprints.sha1 }}</span>
+                            </div>
+                        </div>
+                        <p-divider />
+                    </div>
+
+                    <!-- Extensions -->
+                    @if (cert.extensions.length > 0) {
+                    @for (ext of cert.extensions; track ext.name) {
+                    <div class="mt-2 mb-2">
+                        <h3>
+                            {{ ext.name }}
+                            @if (ext.critical) {
+                            <br />
+                            <small class="text-red-500">
+                                <i class="pi pi-exclamation-circle"></i>
+                                {{ 'certificates.viewer.criticalTooltip' | translate }}
+                            </small>
+                            }
+                        </h3>
+                        <div class="flex flex-col gap-2">
+                            <div class="grid items-start grid-cols-[200px_1fr] gap-2">
+                                @for (v of ext.value; track v.value) {
+                                <span class="font-semibold">{{v.label}}</span>
+                                <span class="whitespace-pre-line {{ v.class }}">{{ v.value }}</span>
+                                }
+                            </div>
+                        </div>
+                        <p-divider />
+                    </div>
+                    }
+                    }
+                </div>
+            </p-tabpanel>
+            }
+        </p-tabpanels>
+    </p-tabs>
+</div>

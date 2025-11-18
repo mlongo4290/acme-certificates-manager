@@ -1,0 +1,655 @@
+<div class="card">
+
+    <h2 class="mb-4">{{ 'certificates.title' | translate }}</h2>
+    <p class="text-surface-600 dark:text-surface-400 mb-6">{{ 'certificates.description' | translate }}</p>
+
+    <div class="flex justify-content-between align-items-center mb-5 gap-3">
+        <div>
+            <p-button [label]="'certificates.create' | translate" icon="pi pi-plus" (onClick)="showCreateDialog()"
+                severity="primary">
+            </p-button>
+        </div>
+    </div>
+
+    <p-table #dt [value]="certificates" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [loading]="loading"
+        [paginator]="true" [rows]="10" [totalRecords]="totalRecords" [rowsPerPageOptions]="[10, 25, 50]"
+        [showCurrentPageReport]="true" [currentPageReportTemplate]="'currentPageReportTemplate' | translate"
+        [filterDelay]="300" sortField="domain" [sortOrder]="1" styleClass="p-datatable-striped">
+
+        <ng-template #header>
+            <tr>
+                <th pSortableColumn="domain" [style]="{ 'min-width': '200px' }">
+                    {{ 'certificates.domain' | translate }}
+                    <p-sortIcon field="domain" />
+                    <p-columnFilter type="text" field="domain" display="menu" matchMode="contains"
+                        [showMatchModes]="true" [showOperator]="true" [showAddButton]="true" />
+                </th>
+                <th pSortableColumn="status" [style]="{ 'min-width': '120px' }">
+                    {{ 'common.status' | translate }}
+                    <p-sortIcon field="status" />
+                    <p-columnFilter field="status" matchMode="equals" display="menu" operator="or"
+                        [showMatchModes]="false" [showOperator]="false" [showAddButton]="false">
+                        <ng-template #filter let-value let-filter="filterCallback">
+                            <p-multiselect [ngModel]="value" [options]="statuses" (ngModelChange)="filter($event)"
+                                class="w-full">
+                                <ng-template let-option #item>
+                                    <p-tag [value]="option.label" [severity]="getStatusSeverity(option.value)" />
+                                </ng-template>
+                            </p-multiselect>
+                        </ng-template>
+                    </p-columnFilter>
+                </th>
+                <th pSortableColumn="challengeType" [style]="{ 'min-width': '150px' }">
+                    {{ 'certificates.challengeType' | translate }}
+                    <p-sortIcon field="challengeType" />
+                    <p-columnFilter field="challengeType" matchMode="equals" display="menu" operator="or"
+                        [showMatchModes]="false" [showOperator]="false" [showAddButton]="true">
+                        <ng-template #filter let-value let-filter="filterCallback">
+                            <p-select [ngModel]="value" [options]="challengeTypes" (ngModelChange)="filter($event)"
+                                class="w-full">
+                                <ng-template let-option #item>
+                                    <p-tag [value]="option.label" [severity]="option.value"></p-tag>
+                                </ng-template>
+                            </p-select>
+                        </ng-template>
+                    </p-columnFilter>
+                </th>
+                <th [style]="{ 'min-width': '150px' }">{{ 'certificates.dnsProvider' | translate }}</th>
+                <th pSortableColumn="expiryDate" [style]="{ 'min-width': '180px' }">
+                    {{ 'certificates.expiryDate' | translate }}
+                    <p-sortIcon field="expiryDate" />
+                    <p-columnFilter type="date" field="expiryDate" display="menu" [showMatchModes]="true"
+                        [showOperator]="true" [showAddButton]="true">
+                        <ng-template #filter let-value let-filter="filterCallback">
+                            <p-datepicker [ngModel]="value" (ngModelChange)="filter($event)" [dateFormat]="dateFormat"
+                                [showIcon]="true" iconDisplay="input">
+                            </p-datepicker>
+                        </ng-template>
+                    </p-columnFilter>
+                </th>
+                <th [style]="{ 'min-width': '120px' }">{{ 'certificates.autoRenewal.title' | translate }}</th>
+                <th [style]="{ 'min-width': '150px' }">{{ 'common.actions' | translate }}</th>
+            </tr>
+        </ng-template>
+
+        <ng-template #body let-cert>
+            <tr>
+                <td>
+                    <div class="flex flex-col">
+                        <span class="font-semibold">{{ cert.domain }}</span>
+                        @if (cert.lastRenewalAttempt) {
+                        <span class="text-xs text-gray-500">
+                            {{ 'certificates.lastRenewal' | translate }}: {{ cert.lastRenewalAttempt |
+                            date:'short':undefined:translateService.getCurrentLang() }}
+                        </span>
+                        }
+                    </div>
+                </td>
+                <td>
+                    <p-tag [value]="('certificates.status.' + cert.status) | translate"
+                        [severity]="getStatusSeverity(cert.status)" />
+                </td>
+                <td>
+                    <p-tag [value]="getChallengeTypeLabel(cert.challengeType)"
+                        [severity]="cert.challengeType === 'dns-01' ? 'info' : 'secondary'" />
+                </td>
+                <td>{{ getDnsProviderLabel(cert.dnsProvider) }}</td>
+                <td>
+                    @if (cert.expiryDate) {
+                    <div class="flex flex-col gap-2">
+                        <div class="flex flex-col">
+                            <span class="text-xs text-gray-500">{{ 'certificates.localTime' | translate }}:</span>
+                            <span class="text-sm font-semibold">{{ cert.expiryDate |
+                                date:'short':undefined:translateService.getCurrentLang() }}</span>
+                        </div>
+                        @if (getDaysUntilExpiry(cert.expiryDate); as days) {
+                        <div class="flex items-center gap-2">
+                            <div class="bg-surface-200 dark:bg-surface-700 rounded-border overflow-hidden w-full"
+                                style="height: 8px">
+                                <div class="h-full transition-all" [style.width.%]="Math.min((days / 90) * 100, 100)"
+                                    [ngClass]="{
+                                        'bg-red-500': days <= 7,
+                                        'bg-orange-500': days > 7 && days <= 30,
+                                        'bg-green-500': days > 30
+                                    }"></div>
+                            </div>
+                            <span class="text-xs font-medium min-w-[60px]" [ngClass]="{
+                                'text-red-500': days <= 7,
+                                'text-orange-500': days > 7 && days <= 30,
+                                'text-green-500': days > 30
+                            }">
+                                @if (days >= 0) {
+                                {{ days }} {{ 'certificates.daysLeft' | translate }}
+                                } @else {
+                                {{ 'certificates.status.expired' | translate }}
+                                }
+                            </span>
+                        </div>
+                        }
+                    </div>
+                    } @else {
+                    <span class="text-gray-500">-</span>
+                    }
+                </td>
+                <td>
+                    <div class="flex flex-col gap-1">
+                        <div class="flex items-center gap-2">
+                            <i
+                                [class]="cert.autoRenewal ? 'pi pi-check text-green-500' : 'pi pi-times text-red-500'"></i>
+                            @if (cert.autoRenewal && cert.nextRenewalDate) {
+                            <span class="text-xs text-gray-600 dark:text-gray-400">
+                                {{ cert.nextRenewalDate | date:'short':undefined:translateService.getCurrentLang() }}
+                            </span>
+                            } @else if (cert.autoRenewal) {
+                            <span class="text-xs text-gray-500 italic">
+                                {{ 'certificates.notScheduled' | translate }}
+                            </span>
+                            }
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="flex gap-2">
+                        @if (cert.status === 'pending' || cert.status === 'error') {
+                        <!-- Issue button for pending/error certificates -->
+                        <p-button icon="pi pi-play" [pTooltip]="'certificates.actions.issue' | translate"
+                            (click)="issueCertificate(cert)" [disabled]="saving" severity="info" [text]="true" />
+                        } @else if (cert.status === 'expired') {
+                        <!-- Renew button for expired certificates -->
+                        <p-button icon="pi pi-refresh" [pTooltip]="'certificates.actions.renew' | translate"
+                            (click)="renewCertificate(cert)" [disabled]="saving" severity="success" [text]="true" />
+                        } @else if (cert.modified) {
+                        <!-- Reissue button for modified certificates -->
+                        <p-button icon="pi pi-file-edit" [pTooltip]="'certificates.actions.reissue' | translate"
+                            (click)="reissueCertificate(cert)" [disabled]="saving" severity="warn" [text]="true" />
+                        } @else {
+                        <!-- Renew button for valid, unmodified certificates -->
+                        <p-button icon="pi pi-refresh" [pTooltip]="'certificates.actions.renew' | translate"
+                            (click)="renewCertificate(cert)" [disabled]="saving" severity="success" [text]="true" />
+                        }
+
+                        @if (cert.postIssueScripts && cert.postIssueScripts.length > 0) {
+                        <p-button icon="pi pi-bolt" [pTooltip]="'certificates.hints.runScripts' | translate"
+                            tooltipPosition="top" (click)="runPostIssuanceScripts(cert)" [disabled]="saving"
+                            severity="secondary" [text]="true" />
+                        }
+
+                        @if (cert.status === 'valid' || cert.status === 'expired') {
+                        <!-- View certificate details button -->
+                        <p-button icon="pi pi-info-circle" [pTooltip]="'certificates.actions.viewDetails' | translate"
+                            (click)="showCertificateDetails(cert)" [disabled]="saving" severity="info" [text]="true" />
+
+                        <!-- Download button with dropdown menu -->
+                        <p-button icon="pi pi-download" [pTooltip]="'certificates.actions.download' | translate"
+                            (click)="showDownloadMenu($event, cert)" [disabled]="saving" severity="secondary"
+                            [text]="true" />
+                        }
+
+                        <p-button icon="pi pi-pencil" [pTooltip]="'certificates.edit' | translate"
+                            (click)="showEditDialog(cert)" [disabled]="saving" severity="secondary" [text]="true" />
+
+                        <p-button icon="pi pi-trash" [pTooltip]="'common.delete' | translate"
+                            (click)="deleteCertificate(cert)" [disabled]="saving" severity="danger" [text]="true" />
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="7" class="text-center">
+                    {{ 'certificates.noCertificates' | translate }}
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+
+    <!-- Download menu - single instance outside the table -->
+    <p-menu #downloadMenu [model]="downloadMenuItems" [popup]="true" />
+</div>
+
+<!-- Create/Edit Dialog -->
+<p-dialog [(visible)]="displayDialog"
+    [header]="!certificateForm._id ? ('certificates.create' | translate) : ('certificates.edit' | translate)"
+    [modal]="true" [style]="{ width: '1000px' }" [draggable]="false" [resizable]="false"
+    [contentStyle]="{ 'overflow-y': 'auto', 'max-height': 'calc(100vh - 200px)' }">
+
+    <p-stepper [(value)]="activeStep" class="basis-[40rem]">
+        <p-step-list>
+            <p-step [value]="1" class="flex flex-row flex-auto gap-2">
+                <ng-template #content let-activateCallback="activateCallback" let-value="value">
+                    <button class="bg-transparent border-0 inline-flex flex-col gap-2 cursor-pointer"
+                        (click)="activateCallback()">
+                        <span class="rounded-full border-2 w-12 h-12 inline-flex items-center justify-center" [ngClass]="{
+                            'bg-primary text-primary-contrast border-primary': value <= activeStep,
+                            'border-surface': value > activeStep
+                        }">
+                            <i class="pi pi-verified"></i>
+                        </span>
+                    </button>
+                </ng-template>
+            </p-step>
+            <p-step [value]="2" class="flex flex-row flex-auto gap-2">
+                <ng-template #content let-activateCallback="activateCallback" let-value="value">
+                    <button class="bg-transparent border-0 inline-flex flex-col gap-2 cursor-pointer"
+                        (click)="activateCallback()">
+                        <span class="rounded-full border-2 w-12 h-12 inline-flex items-center justify-center" [ngClass]="{
+                            'bg-primary text-primary-contrast border-primary': value <= activeStep,
+                            'border-surface': value > activeStep
+                        }">
+                            <i class="pi pi-refresh"></i>
+                        </span>
+                    </button>
+                </ng-template>
+            </p-step>
+            <p-step [value]="3" class="flex flex-row flex-auto gap-2">
+                <ng-template #content let-activateCallback="activateCallback" let-value="value">
+                    <button class="bg-transparent border-0 inline-flex flex-col gap-2 cursor-pointer"
+                        (click)="activateCallback()">
+                        <span class="rounded-full border-2 w-12 h-12 inline-flex items-center justify-center" [ngClass]="{
+                            'bg-primary text-primary-contrast border-primary': value <= activeStep,
+                            'border-surface': value > activeStep
+                        }">
+                            <i class="pi pi-code"></i>
+                        </span>
+                    </button>
+                </ng-template>
+            </p-step>
+        </p-step-list>
+        <p-step-panels>
+            <p-step-panel [value]="1">
+                <ng-template #content let-activateCallback="activateCallback">
+                    <div class="flex flex-col gap-2 mx-auto" style="min-height: 16rem; max-width: 50rem">
+                        <div class="text-center mt-3 mb-3 text-xl font-semibold">{{ 'certificates.details' |
+                            translate }}</div>
+
+                        <div class="flex flex-col gap-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="flex flex-col gap-2">
+                                    <label for="domain" class="font-semibold">{{ 'certificates.domain' | translate }}
+                                        *</label>
+                                    <input id="domain" type="text" pInputText [(ngModel)]="certificateForm.domain"
+                                        [placeholder]="'certificates.placeholders.domain' | translate"
+                                        [disabled]="!!certificateForm._id" class="w-full" />
+                                    <small class="text-gray-500">{{ 'certificates.hints.domain' | translate }}</small>
+                                </div>
+
+                                <div class="flex flex-col gap-2">
+                                    <label for="challengeType" class="font-semibold">{{ 'certificates.challengeType' |
+                                        translate }}
+                                        *</label>
+                                    <p-select id="challengeType" [(ngModel)]="certificateForm.challengeType"
+                                        [options]="challengeTypes" optionLabel="label" optionValue="value"
+                                        [placeholder]="'certificates.placeholders.selectChallengeType' | translate"
+                                        class="w-full" />
+                                    <small class="text-gray-500">{{ 'certificates.hints.challengeType' | translate
+                                        }}</small>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-2">
+                                <label for="additionalDomains" class="font-semibold">
+                                    {{ 'certificates.additionalDomains' | translate }}
+                                    <span class="text-gray-500 text-sm font-normal">({{ 'optional' | translate
+                                        }})</span>
+                                </label>
+                                <div class="flex gap-2">
+                                    <input id="newAdditionalDomain" type="text" pInputText
+                                        [(ngModel)]="newAdditionalDomain"
+                                        [placeholder]="'certificates.placeholders.additionalDomain' | translate"
+                                        class="flex-1" />
+                                    <p-button icon="pi pi-plus" (click)="addAdditionalDomain()"
+                                        [disabled]="!newAdditionalDomain" severity="secondary" />
+                                </div>
+                                @if (certificateForm.additionalDomains?.length > 0) {
+                                <div class="flex flex-wrap gap-2 mt-2">
+                                    @for (domain of certificateForm.additionalDomains; track domain; let i = $index) {
+                                    <div
+                                        class="flex items-center gap-2 px-3 py-1 bg-blue-100 dark:bg-blue-900 rounded-full">
+                                        <span class="text-sm">{{ domain }}</span>
+                                        <i class="pi pi-times cursor-pointer text-red-500 hover:text-red-700"
+                                            (click)="removeAdditionalDomain(i)"></i>
+                                    </div>
+                                    }
+                                </div>
+                                }
+                                <small class="text-gray-500">{{ 'certificates.hints.additionalDomains' | translate
+                                    }}</small>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="flex flex-col gap-2">
+                                    <label for="certificateAuthority" class="font-semibold">{{
+                                        'certificates.certificateAuthority'
+                                        | translate }} *</label>
+                                    <p-select id="certificateAuthority"
+                                        [(ngModel)]="certificateForm.certificateAuthority"
+                                        [options]="certificateAuthorities" optionLabel="label" optionValue="value"
+                                        [placeholder]="'certificates.placeholders.selectCertificateAuthority' | translate"
+                                        class="w-full" (onChange)="onCertificateAuthorityChange()" />
+                                    <small class="text-gray-500">{{ 'certificates.hints.certificateAuthority' |
+                                        translate
+                                        }}</small>
+                                </div>
+
+                                <div class="flex flex-col gap-2">
+                                    <label for="acmeAccount" class="font-semibold">{{ 'certificates.acmeAccount' |
+                                        translate
+                                        }}
+                                        *</label>
+                                    <p-select id="acmeAccount" [(ngModel)]="certificateForm.acmeAccount"
+                                        [options]="filteredAccounts" optionLabel="label" optionValue="value"
+                                        [placeholder]="'certificates.placeholders.selectAcmeAccount' | translate"
+                                        class="w-full" />
+                                    <small class="text-gray-500">{{ 'certificates.hints.acmeAccount' | translate
+                                        }}</small>
+                                </div>
+                            </div>
+
+                            @if (certificateForm.challengeType === 'dns-01') {
+                            <div class="flex flex-col gap-2">
+                                <label for="dnsProvider" class="font-semibold">{{ 'certificates.dnsProvider' | translate
+                                    }}
+                                    *</label>
+                                <p-select id="dnsProvider" [(ngModel)]="certificateForm.dnsProvider"
+                                    [options]="dnsProviders" optionLabel="label" optionValue="value"
+                                    [placeholder]="'certificates.placeholders.selectDnsProvider' | translate"
+                                    class="w-full" />
+                                <small class="text-gray-500">{{ 'certificates.hints.dnsProvider' | translate }}</small>
+                            </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="flex pt-4 justify-end">
+                        <p-button [label]="'common.next' | translate" icon="pi pi-arrow-right" iconPos="right"
+                            (onClick)="activateCallback(2)" />
+                    </div>
+                </ng-template>
+            </p-step-panel>
+
+            <p-step-panel [value]="2">
+                <ng-template #content let-activateCallback="activateCallback">
+                    <div class="flex flex-col gap-2 mx-auto" style="min-height: 16rem; max-width: 50rem">
+                        <div class="text-center mt-3 mb-3 text-xl font-semibold">{{ 'certificates.autoRenewal.title' |
+                            translate }}</div>
+
+                        <div class="flex flex-col gap-4">
+                            <div class="flex items-center gap-2">
+                                <p-toggleSwitch [(ngModel)]="certificateForm.autoRenewal" inputId="autoRenewal" />
+                                <label for="autoRenewal" class="font-semibold">{{ 'certificates.autoRenewal.enabled' |
+                                    translate
+                                    }}</label>
+                            </div>
+
+                            @if (certificateForm.autoRenewal) {
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="flex flex-col gap-2">
+                                    <label for="daysBeforeExpiry" class="font-semibold">{{
+                                        'certificates.autoRenewal.daysBeforeExpiry' |
+                                        translate }}</label>
+                                    <p-inputNumber id="daysBeforeExpiry"
+                                        [(ngModel)]="certificateForm.renewalSchedule.daysBeforeExpiry" [min]="1"
+                                        [max]="30" suffix=" {{ 'days' | translate }}" class="w-full" />
+                                    <small class="text-gray-500">{{ 'certificates.hints.daysBeforeExpiry' | translate
+                                        }}</small>
+                                </div>
+
+                                <div class="flex flex-col gap-2">
+                                    <label for="renewalTime" class="font-semibold">{{
+                                        'certificates.autoRenewal.time' |
+                                        translate
+                                        }}</label>
+                                    <p-datepicker id="renewalTime" [(ngModel)]="certificateForm.renewalSchedule.time"
+                                        [hourFormat]="hourFormat" [timeOnly]="true" class="w-full" />
+                                    <small class="text-gray-500">{{ 'certificates.hints.renewalTime' | translate
+                                        }}</small>
+                                </div>
+
+                                <div class="flex flex-col gap-2 col-span-2">
+                                    <label for="timeShift" class="font-semibold">{{ 'certificates.autoRenewal.timeShift'
+                                        | translate
+                                        }}</label>
+                                    <p-inputNumber id="timeShift"
+                                        [(ngModel)]="certificateForm.renewalSchedule.timeShiftMinutes" [min]="0"
+                                        [max]="720" suffix=" min" class="w-full" />
+                                    <small class="text-gray-500">{{ 'certificates.autoRenewal.timeShiftHint' | translate
+                                        }}</small>
+                                </div>
+                            </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="flex pt-4 justify-between">
+                        <p-button [label]="'common.back' | translate" severity="secondary" icon="pi pi-arrow-left"
+                            (onClick)="activateCallback(1)" />
+                        <p-button [label]="'common.next' | translate" icon="pi pi-arrow-right" iconPos="right"
+                            (onClick)="activateCallback(3)" />
+                    </div>
+                </ng-template>
+            </p-step-panel>
+
+            <p-step-panel [value]="3">
+                <ng-template #content let-activateCallback="activateCallback">
+                    <div class="flex flex-col gap-2 mx-auto" style="min-height: 16rem; max-width: 50rem">
+                        <div class="text-center mt-3 mb-3 text-xl font-semibold">{{
+                            'certificates.postIssueScripts.title' |
+                            translate }}</div>
+
+                        <div class="flex flex-col gap-4">
+                            <!-- Post-Issue Scripts Management -->
+                            <div class="flex flex-col gap-3">
+                                <div class="flex items-center justify-between">
+                                    <label class="font-semibold">
+                                        {{ 'certificates.postIssueScripts.title' | translate }}
+                                        <span class="text-gray-500 text-sm font-normal">({{ 'optional' | translate
+                                            }})</span>
+                                    </label>
+                                </div>
+                                <small class="text-gray-500 -mt-2">{{ 'certificates.hints.runScripts' | translate
+                                    }}</small>
+
+                                <!-- List of configured scripts -->
+                                @if (certificateForm.postIssueScripts && certificateForm.postIssueScripts.length > 0) {
+                                <div class="flex flex-col gap-2">
+                                    @for (scriptEntry of certificateForm.postIssueScripts; track $index) {
+                                    <div class="p-3 border rounded bg-surface-50 dark:bg-surface-800">
+                                        <div class="flex items-start justify-between gap-2 mb-2">
+                                            <div class="flex items-center gap-2 flex-1">
+                                                <div class="flex items-center gap-1 text-gray-500">
+                                                    <span class="font-mono text-sm">{{ $index + 1 }}</span>
+                                                </div>
+                                                <div class="flex-1">
+                                                    <div class="font-semibold">{{
+                                                        getScriptDetails(scriptEntry.script)?.name || scriptEntry.script
+                                                        }}</div>
+                                                    @if (getScriptDetails(scriptEntry.script)?.description) {
+                                                    <small class="text-gray-500">{{
+                                                        getScriptDetails(scriptEntry.script).description }}</small>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div class="flex gap-1">
+                                                <p-button icon="pi pi-arrow-up" (onClick)="moveScriptUp($index)"
+                                                    [text]="true" [disabled]="$index === 0" severity="secondary"
+                                                    size="small" [pTooltip]="'common.moveUp' | translate" />
+                                                <p-button icon="pi pi-arrow-down" (onClick)="moveScriptDown($index)"
+                                                    [text]="true"
+                                                    [disabled]="$index === certificateForm.postIssueScripts.length - 1"
+                                                    severity="secondary" size="small"
+                                                    [pTooltip]="'common.moveDown' | translate" />
+                                                <p-button icon="pi pi-trash" (onClick)="removeScript($index)"
+                                                    [text]="true" severity="danger" size="small"
+                                                    [pTooltip]="'common.delete' | translate" />
+                                            </div>
+                                        </div>
+
+                                        <!-- Script Variables -->
+                                        @if (getScriptDetails(scriptEntry.script)?.envVars &&
+                                        getScriptDetails(scriptEntry.script).envVars.length > 0) {
+                                        <div class="flex flex-col gap-2 mt-3 p-2 bg-white dark:bg-surface-900 rounded">
+                                            @for (envVar of getScriptDetails(scriptEntry.script).envVars; track
+                                            envVar.key) {
+                                            <div class="flex flex-col gap-1">
+                                                <label [for]="'script_' + $index + '_var_' + envVar.key"
+                                                    class="text-xs flex items-center gap-2">
+                                                    <code class="font-mono text-primary">{{ envVar.key }}</code>
+                                                    @if (envVar.required) {
+                                                    <span class="text-red-500">*</span>
+                                                    }
+                                                    @if (envVar.sensitive) {
+                                                    <i class="pi pi-lock text-orange-500 text-xs"></i>
+                                                    }
+                                                </label>
+                                                @if (envVar.description) {
+                                                <small class="text-surface-600 dark:text-surface-400 text-xs">{{
+                                                    envVar.description }}</small>
+                                                }
+                                                <input [id]="'script_' + $index + '_var_' + envVar.key"
+                                                    [type]="envVar.sensitive ? 'password' : 'text'" pInputText
+                                                    [(ngModel)]="scriptEntry.vars[envVar.key]"
+                                                    [placeholder]="envVar.defaultValue || ('certificates.enterValue' | translate)"
+                                                    size="small" />
+                                            </div>
+                                            }
+                                        </div>
+                                        }
+
+                                        <!-- SSH Key Selection -->
+                                        @if (scriptRequiresSshKey(scriptEntry.script)) {
+                                        <div class="flex flex-col gap-2 mt-3 p-2 bg-white dark:bg-surface-900 rounded">
+                                            <label [for]="'script_' + $index + '_ssh_key'"
+                                                class="text-xs flex items-center gap-2">
+                                                <i class="pi pi-key text-primary text-xs"></i>
+                                                <span class="font-semibold">{{ 'certificates.selectSshKey' | translate
+                                                    }}</span>
+                                                <span class="text-red-500">*</span>
+                                            </label>
+                                            <p-select [id]="'script_' + $index + '_ssh_key'"
+                                                [(ngModel)]="scriptEntry.sshKey" [options]="sshKeys" optionLabel="name"
+                                                optionValue="_id"
+                                                [placeholder]="'certificates.selectSshKey' | translate"
+                                                [showClear]="true" appendTo="body" size="small" />
+                                        </div>
+                                        }
+                                    </div>
+                                    }
+                                </div>
+                                }
+
+                                <!-- Add Script Section -->
+                                <div class="flex flex-col gap-2 p-3 border border-dashed rounded">
+                                    <div class="flex gap-2">
+                                        <p-select [(ngModel)]="selectedScriptToAdd" [options]="postIssueScripts"
+                                            optionLabel="name" optionValue="_id"
+                                            [placeholder]="'certificates.placeholders.selectScriptToAdd' | translate"
+                                            [showClear]="true" class="flex-1" (onChange)="onScriptToAddChange()"
+                                            appendTo="body" />
+                                        <p-button [label]="'certificates.addScript' | translate" icon="pi pi-plus"
+                                            (onClick)="addScript()" [disabled]="!selectedScriptToAdd"
+                                            severity="secondary" />
+                                    </div>
+
+                                    @if (selectedScriptDetails) {
+                                    <div class="p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-sm">
+                                        <div class="font-semibold text-blue-700 dark:text-blue-300">{{
+                                            selectedScriptDetails.name }}</div>
+                                        @if (selectedScriptDetails.description) {
+                                        <div class="text-xs text-blue-600 dark:text-blue-400 mt-1">{{
+                                            selectedScriptDetails.description }}</div>
+                                        }
+                                    </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex pt-4 justify-between">
+                        <p-button [label]="'common.back' | translate" severity="secondary" icon="pi pi-arrow-left"
+                            (onClick)="activateCallback(2)" />
+                        <p-button [label]="'common.save' | translate" icon="pi pi-check" (click)="saveCertificate()"
+                            [loading]="saving" />
+                    </div>
+                </ng-template>
+            </p-step-panel>
+        </p-step-panels>
+    </p-stepper>
+</p-dialog>
+
+<!-- Progress Dialog for Certificate Issuance -->
+<p-dialog [(visible)]="displayProgressDialog" [header]="'certificates.issuing' | translate" [modal]="true"
+    [closable]="!saving" [draggable]="false" [resizable]="false" [style]="{ width: '600px', maxHeight: '80vh' }">
+    <div class="flex flex-col gap-4 py-4">
+        @if (saving) {
+        <div class="flex justify-center mb-2">
+            <p-progressSpinner styleClass="w-1 h-1" strokeWidth="4" />
+        </div>
+        }
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 max-h-96 overflow-y-auto" #progressContainer>
+            @for(message of progressMessages; track message) {
+            <div class="text-sm font-mono mb-1 text-gray-700 dark:text-gray-300"
+                [class.text-red-600]="message.startsWith('✗')" [class.text-green-600]="message.startsWith('✓')"
+                [class.text-yellow-600]="message.startsWith('⚠')">
+                {{ message }}
+            </div>
+            }
+        </div>
+    </div>
+
+    <ng-template #footer>
+        @if (!saving) {
+        <p-button [label]="'common.close' | translate" icon="pi pi-times" (click)="displayProgressDialog = false"
+            severity="secondary" />
+        }
+    </ng-template>
+</p-dialog>
+
+<!-- Certificate Viewer Dialog -->
+<p-dialog [(visible)]="displayCertificateViewer" [header]="'certificates.actions.viewDetails' | translate"
+    [modal]="true" [style]="{width: '90vw', height: '85vh'}" [dismissableMask]="true" [maximizable]="true">
+
+    @if(selectedCertificatePem) {
+    <app-certificate-viewer [certificatePem]="selectedCertificatePem">
+    </app-certificate-viewer>
+    }
+</p-dialog>
+
+<!-- Script Error Dialog -->
+<p-dialog [(visible)]="displayScriptErrorDialog" [header]="'certificates.errors.scriptExecutionError' | translate"
+    [modal]="true" [closable]="true" [draggable]="false" [resizable]="false"
+    [style]="{ width: '700px', maxHeight: '80vh' }">
+    <div class="flex flex-col gap-4 py-4">
+        @if (scriptErrorDetails.error) {
+        <div class="mb-4">
+            <label class="font-semibold text-sm text-red-600 dark:text-red-400 block">
+                <i class="pi pi-exclamation-triangle mr-2"></i>
+                {{ 'certificates.errorMessage' | translate }}
+            </label>
+            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                <pre
+                    class="text-sm font-mono whitespace-pre-wrap text-red-700 dark:text-red-300 overflow-x-auto">{{ scriptErrorDetails.error }}</pre>
+            </div>
+        </div>
+        }
+
+        @if (scriptErrorDetails.output) {
+        <div class="mb-4">
+            <label class="font-semibold text-sm text-surface-600 dark:text-surface-400 block">
+                <i class="pi pi-info-circle mr-2"></i>
+                {{ 'certificates.scriptOutput' | translate }}
+            </label>
+            <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-4 max-h-64 overflow-y-auto">
+                <pre
+                    class="text-sm font-mono whitespace-pre-wrap text-surface-700 dark:text-surface-300">{{ scriptErrorDetails.output }}</pre>
+            </div>
+        </div>
+        }
+    </div>
+
+    <ng-template #footer>
+        <p-button [label]="'common.close' | translate" icon="pi pi-times" (click)="displayScriptErrorDialog = false"
+            severity="secondary" />
+    </ng-template>
+</p-dialog>
+
+<p-toast />
+<p-confirmDialog />

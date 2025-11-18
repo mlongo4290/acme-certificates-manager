@@ -1,0 +1,26 @@
+<mjml>
+  <mj-body>
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="20px" color="#0fbc09">Certificato rinnovato con successo</mj-text>
+
+        <mj-divider border-color="#0fbc09"></mj-divider>
+
+        <mj-text>Ciao,</mj-text>
+        <mj-text>Siamo lieti di informarti che il certificato SSL/TLS per <strong>{{domain}}</strong> è stato rinnovato con successo.</mj-text>
+
+        <mj-text>
+          <p><strong>Dominio:</strong> {{domain}}</p>
+          <p><strong>ID certificato:</strong> {{certificateId}}</p>
+          <p><strong>Nuova data di scadenza:</strong> {{expiryDate}}</p>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="12px" color="#888888"> ACM Certificates Manager</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

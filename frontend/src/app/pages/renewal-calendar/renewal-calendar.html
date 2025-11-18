@@ -1,0 +1,17 @@
+<div class="card">
+    <h2 class="mb-4">{{ 'renewalCalendar.title' | translate }}</h2>
+    <p class="text-surface-600 dark:text-surface-400 mb-6">{{ 'renewalCalendar.description' | translate }}</p>
+
+    <!-- FullCalendar -->
+    <div class="calendar-container" [class.loading]="loading">
+        <full-calendar [options]="calendarOptions" />
+    </div>
+
+    @if (loading) {
+    <div class="flex justify-content-center align-items-center py-8">
+        <p-progressSpinner />
+    </div>
+    }
+</div>
+
+<p-toast />

@@ -1,0 +1,207 @@
+<div class="card">
+    <h2 class="mb-4">{{ 'users.title' | translate }}</h2>
+    <p class="text-surface-600 dark:text-surface-400 mb-6">{{ 'users.description' | translate }}</p>
+
+    <div class="mb-5">
+        <p-button [label]="'users.create' | translate" icon="pi pi-plus" (onClick)="showCreateDialog()"
+            severity="primary">
+        </p-button>
+    </div>
+
+    <p-table #dt [value]="users" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [loading]="loading" [paginator]="true"
+        [rows]="10" [totalRecords]="totalRecords" [rowsPerPageOptions]="[10, 25, 50]" [showCurrentPageReport]="true"
+        [currentPageReportTemplate]="'currentPageReportTemplate' | translate" [filterDelay]="300" sortField="domain"
+        [sortOrder]="1" styleClass="p-datatable-striped">
+
+        <ng-template #header>
+            <tr>
+                <th pSortableColumn="username" [style]="{ 'min-width': '150px' }">
+                    {{ 'auth.username' | translate }}
+                    <p-sortIcon field="username" />
+                    <p-columnFilter type="text" field="username" display="menu" matchMode="contains"
+                        [showMatchModes]="true" [showOperator]="true" [showAddButton]="true" />
+                </th>
+                <th pSortableColumn="email" [style]="{ 'min-width': '200px' }">
+                    {{ 'auth.email' | translate }}
+                    <p-sortIcon field="email" />
+                    <p-columnFilter type="text" field="email" display="menu" matchMode="contains"
+                        [showMatchModes]="true" [showOperator]="true" [showAddButton]="true" />
+                </th>
+                <th [style]="{ 'min-width': '150px' }">{{ 'users.authProvider' | translate }}</th>
+                <th pSortableColumn="role" [style]="{ 'min-width': '120px' }">
+                    {{ 'users.role' | translate }}
+                    <p-sortIcon field="role" />
+                </th>
+                <th [style]="{ 'min-width': '80px' }">{{ 'users.mfa' | translate }}</th>
+                <th pSortableColumn="isActive" [style]="{ 'min-width': '100px' }">
+                    {{ 'common.status' | translate }}
+                    <p-sortIcon field="isActive" />
+                </th>
+                <th [style]="{ 'min-width': '200px' }">{{ 'common.actions' | translate }}</th>
+            </tr>
+        </ng-template>
+
+        <ng-template #body let-user>
+            <tr>
+                <td>{{ user.username }}</td>
+                <td>{{ user.email || '-' }}</td>
+                <td>
+                    <p-tag [value]="getProviderLabel(user.authProvider, user.authProviderName)" severity="secondary">
+                    </p-tag>
+                </td>
+                <td>
+                    <p-tag [value]="getRoleLabel(user.role)">
+                    </p-tag>
+                </td>
+                <td>
+                    @if (isInternalProvider(user.authProvider)) {
+                    <div class="flex items-center gap-2">
+                        <p-tag [value]="user.mfaEnabled ? ('mfa.enabled' | translate) : ('mfa.notSetup' | translate)"
+                            [severity]="user.mfaEnabled ? 'success' : 'secondary'">
+                        </p-tag>
+                        @if (user.mfaEnabled) {
+                        <p-button icon="pi pi-times-circle" [rounded]="true" [text]="true" severity="danger"
+                            size="small" (onClick)="disableMfaForUser(user)" pTooltip="{{ 'mfa.disable' | translate }}">
+                        </p-button>
+                        }
+                    </div>
+                    } @else {
+                    <span class="text-surface-500">-</span>
+                    }
+                </td>
+                <td>
+                    <p-tag [value]="user.isActive ? ('common.active' | translate) : ('common.inactive' | translate)"
+                        [severity]="user.isActive ? 'success' : 'danger'">
+                    </p-tag>
+                </td>
+                <td>
+                    <div class="flex gap-2">
+                        <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" severity="info"
+                            (onClick)="showEditDialog(user)">
+                        </p-button>
+                        <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger"
+                            (onClick)="deleteUser(user)">
+                        </p-button>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="7" class="text-center">
+                    {{ 'users.noUsers' | translate }}
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<p-dialog [(visible)]="displayDialog" [header]="isNewUser ? ('users.create' | translate) : ('users.edit' | translate)"
+    [modal]="true" [style]="{width: '500px'}" [closable]="true">
+
+    <div class="flex flex-col gap-5">
+        <div class="flex flex-col gap-2">
+            <label for="username" class="block font-medium text-surface-700 dark:text-surface-200">{{
+                'auth.username' |
+                translate }} *</label>
+            <input pInputText id="username" [(ngModel)]="userForm.username" class="w-full" [disabled]="!isNewUser"
+                placeholder="e.g., john.doe" />
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="email" class="block font-medium text-surface-700 dark:text-surface-200">{{ 'auth.email' |
+                translate }} *</label>
+            <input pInputText id="email" [(ngModel)]="userForm.email" class="w-full" type="email"
+                placeholder="user@example.com" [disabled]="!isNewUser && userForm.authProvider !== 'local'" />
+            @if (!isNewUser && userForm.authProvider !== 'local') {
+            <small class="text-surface-500 mt-2 block">{{ 'auth.emailManagedByProvider' | translate }}</small>
+            }
+        </div>
+
+        @if (isNewUser) {
+        <div class="flex flex-col gap-2">
+            <label for="authProvider" class="block font-medium text-surface-700 dark:text-surface-200">{{
+                'users.authProvider' | translate }} *</label>
+            <p-select id="authProvider" [(ngModel)]="userForm.authProvider" [options]="providerOptions"
+                optionLabel="label" optionValue="value" [fluid]="true"
+                placeholder="{{ 'users.authProvider' | translate }}" appendTo="body"
+                (onChange)="onAuthProviderChange()">
+            </p-select>
+        </div>
+
+        @if (userForm.authProvider === 'local') {
+        <div class="flex flex-col gap-2">
+            <label for="password" class="block font-medium text-surface-700 dark:text-surface-200">{{
+                'auth.password' |
+                translate }} *</label>
+            <p-password id="password" [(ngModel)]="userForm.password" [toggleMask]="true" [fluid]="true"
+                [feedback]="true" class="w-full">
+            </p-password>
+        </div>
+        } @else {
+        <p-message severity="info" [text]="'auth.passwordManagedByProvider' | translate" class="mb-4"></p-message>
+        }
+        }
+
+        <div class="flex flex-col gap-2">
+            <label for="role" class="block font-medium text-surface-700 dark:text-surface-200">{{ 'profile.role' |
+                translate }} *</label>
+            <p-select id="role" [(ngModel)]="userForm.role" [options]="roleOptions" optionLabel="label"
+                optionValue="value" [fluid]="true" placeholder="{{ 'profile.role' | translate }}" appendTo="body">
+            </p-select>
+        </div>
+
+        @if (!isNewUser) {
+        <div class="border-t border-surface-200 dark:border-surface-700 pt-5 mt-5">
+            <div class="mb-5">
+                <label class="block font-medium text-surface-700 dark:text-surface-200">{{ 'users.authProvider' |
+                    translate }}</label>
+                <p-tag [value]="getProviderLabel(userForm.authProvider, userForm.authProviderName)"
+                    severity="secondary">
+                </p-tag>
+            </div>
+
+            @if (isInternalProvider(userForm.authProvider)) {
+            <div class="flex flex-col gap-2">
+                <label class="block font-medium text-surface-700 dark:text-surface-200">{{ 'mfa.title' |
+                    translate }}</label>
+
+                @if (userForm.mfaEnabled) {
+                <div class="flex items-center gap-3 mb-3">
+                    <p-tag value="{{ 'common.enabled' | translate }}" severity="success"></p-tag>
+                    <p-button [label]="'mfa.disable' | translate" icon="pi pi-times-circle" severity="danger"
+                        [text]="true" (onClick)="disableMfa()">
+                    </p-button>
+                </div>
+
+                @if (!userForm.mfaSecret) {
+                <p-message severity="info" [text]="'mfa.notSetup' | translate" class="mt-3"></p-message>
+                }
+                } @else {
+                <p-tag value="{{ 'mfa.notSetup' | translate }}" severity="secondary"></p-tag>
+                }
+            </div>
+            }
+        </div>
+        }
+
+        <div class="flex items-center gap-2">
+            <p-toggleswitch id="isActive" [(ngModel)]="userForm.isActive">
+            </p-toggleswitch>
+            <label for="isActive" class="font-medium text-surface-700 dark:text-surface-200">{{ 'common.active' |
+                translate
+                }}</label>
+        </div>
+    </div>
+
+    <ng-template #footer>
+        <p-button [label]="'common.cancel' | translate" icon="pi pi-times" [text]="true" (onClick)="hideDialog()">
+        </p-button>
+        <p-button [label]="'common.save' | translate" icon="pi pi-check" (onClick)="saveUser()" [loading]="saving">
+        </p-button>
+    </ng-template>
+</p-dialog>
+
+<p-confirmDialog></p-confirmDialog>
+<p-toast></p-toast>

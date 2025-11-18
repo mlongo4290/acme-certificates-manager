@@ -1,0 +1,245 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*" # Trigger on version tags (v1.0.0, v1.2.3, etc.)
+
+jobs:
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for changelog
+          ref: ${{ github.ref }} # Use the tag reference
+
+      - name: Verify file structure
+        run: |
+          echo "Checking frontend file structure..."
+          ls -la frontend/src/app/
+          echo "Checking if app.routes.ts exists..."
+          if [ -f "frontend/src/app/app.routes.ts" ]; then
+            echo "✅ app.routes.ts found in correct location"
+          else
+            echo "❌ app.routes.ts not found in frontend/src/app/"
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: "npm"
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Verify backend dependencies
+        working-directory: ./backend
+        run: |
+          npm list --depth=0
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          npm audit --audit-level moderate || echo "Audit completed with warnings"
+
+      - name: Build backend
+        working-directory: ./backend
+        run: |
+          npm run build
+          echo "Backend build completed successfully"
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Verify frontend dependencies
+        working-directory: ./frontend
+        run: |
+          npm list --depth=0
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          npm audit --audit-level moderate || echo "Audit completed with warnings"
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "Checking app.routes.ts content..."
+          head -20 src/app/app.routes.ts
+          echo "Checking app.config.ts content..."
+          head -20 src/app.config.ts
+          echo "Starting build..."
+          npm run build
+          echo "Frontend build completed successfully"
+
+      - name: Create distribution package
+        run: |
+          mkdir -p release-dist
+
+          # Copy backend (with built files)
+          cp -r backend release-dist/
+          rm -rf release-dist/backend/node_modules
+          rm -rf release-dist/backend/src
+
+          # Copy frontend (with built files)
+          mkdir -p release-dist/frontend
+          cp -r frontend/dist/acm-ng/browser/* release-dist/frontend/
+
+          # Copy documentation
+          cp README.md release-dist/
+          cp LICENSE release-dist/
+
+          # Copy Docker files (if exist)
+          [ -f "docker-compose.yml" ] && cp docker-compose.yml release-dist/ || true
+          [ -f "Dockerfile" ] && cp Dockerfile release-dist/ || true
+
+          # Create package.json for easy identification
+          cat > release-dist/package.json << EOF
+          {
+            "name": "acme-certificates-manager",
+            "version": "${{ steps.get_version.outputs.VERSION }}",
+            "description": "Web-based ACME certificate manager",
+            "private": true
+          }
+          EOF
+
+      - name: Create release archives
+        run: |
+          # Full distribution (includes built files)
+          tar -czf acme-certificates-manager-${{ steps.get_version.outputs.TAG }}-full.tar.gz -C release-dist .
+
+          # Source code (will be added automatically by GitHub)
+          # No need to create source archives manually
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get commits since last tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          if [ -z "$PREV_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          else
+            CHANGELOG=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          fi
+
+          # Save to file for multiline output
+          echo "$CHANGELOG" > CHANGELOG.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.get_version.outputs.TAG }}
+          body_path: CHANGELOG.txt
+          draft: false
+          prerelease: false
+          files: |
+            acme-certificates-manager-${{ steps.get_version.outputs.TAG }}-full.tar.gz
+            install.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create release notes
+        uses: softprops/action-gh-release@v1
+        with:
+          body: |
+            ## ACME Certificates Manager ${{ steps.get_version.outputs.TAG }}
+
+            ### 📦 Installation
+
+            **Option 1: Automated Installation (Debian/Ubuntu)**
+            ```bash
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.TAG }}/install.sh
+            chmod +x install.sh
+            sudo ./install.sh ${{ steps.get_version.outputs.TAG }}
+            ```
+
+            **Option 2: Manual Installation**
+            ```bash
+            # Download and extract
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.TAG }}/acme-certificates-manager-${{ steps.get_version.outputs.TAG }}-full.tar.gz
+            tar -xzf acme-certificates-manager-${{ steps.get_version.outputs.TAG }}-full.tar.gz
+            cd acme-certificates-manager-${{ steps.get_version.outputs.TAG }}-full
+
+            # Follow deployment guide
+            cat docs/DEPLOYMENT.md
+            ```
+
+            **Option 3: Docker**
+            ```bash
+            # Download docker-compose.yml
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.TAG }}/docker-compose.yml
+
+            # Start services
+            docker-compose up -d
+            ```
+
+            ### 📋 What's Included
+
+            - ✅ Pre-built backend (Node.js/Express)
+            - ✅ Pre-built frontend (Angular)
+            - ✅ Complete documentation
+            - ✅ Automated installation script
+            - ✅ Docker support
+
+            ### 🚀 Quick Start
+
+            1. Run automated installer (or extract archive manually)
+            2. Access web interface at `https://your-server-ip`
+            3. Login with default credentials: `admin` / `admin`
+            4. **Change password immediately!**
+            5. Configure ACME CA and DNS provider
+            6. Issue your first certificate
+
+            ### ⚠️ Important Notes
+
+            - **Default password:** Change immediately after first login
+            - **Testing status:** Tested with Let's Encrypt + Cloudflare on Windows/Debian
+            - **Other providers:** Untested, community feedback welcome
+            - **MongoDB:** Requires MongoDB 4.4+
+            - **Node.js:** Requires Node.js 18+
+
+            ### 📚 Documentation
+
+            - [User Guide](docs/USER_GUIDE.md)
+            - [Deployment Guide](docs/DEPLOYMENT.md)
+            - [Configuration Guide](docs/CONFIGURATION.md)
+            - [DNS Providers Setup](docs/DNS_PROVIDERS.md)
+            - [Troubleshooting](docs/TROUBLESHOOTING.md)
+
+            ### 🐛 Known Issues
+
+            - Docker deployment is experimental
+            - Some DNS providers are untested
+            - Windows native deployment needs more testing
+
+            ### 💬 Support
+
+            - Report issues: [GitHub Issues](https://github.com/${{ github.repository }}/issues)
+            - Discussions: [GitHub Discussions](https://github.com/${{ github.repository }}/discussions)
+
+            ### 📝 Changelog
+
+            $(cat CHANGELOG.txt)
+
+            ---
+
+            **Made with 🤖 AI assistance**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

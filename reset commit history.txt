@@ -1,0 +1,16 @@
+Sì, posso resettare la storia dei commit e creare un commit iniziale pulito. Ecco come:
+
+
+git checkout --orphan new-main
+
+git add -A
+
+git commit -m "Initial commit - ACME Certificates Manager
+
+Full-stack ACME certificate management system with automated renewal, multi-provider DNS support, and comprehensive monitoring."
+
+git branch -D master
+
+git branch -m master
+
+git push -f origin master

@@ -1,0 +1,25 @@
+<p-card class="col-span-12 xl:col-span-4">
+    <ng-template #subtitle>
+        <span translate>dashboard.charts.summary</span>
+    </ng-template>
+    <div class="flex justify-center items-center mt-2">
+        <p-chart type="pie" [data]="statsData" [options]="statsOptions" />
+    </div>
+</p-card>
+<p-card class="col-span-12 xl:col-span-4">
+    <ng-template #subtitle>
+        <span translate>dashboard.charts.challengeTypes</span>
+    </ng-template>
+    <div class="flex justify-center items-center mt-2">
+        <p-chart type="pie" [data]="challengeTypeData" [options]="challengeTypeOptions" />
+    </div>
+</p-card>
+
+<p-card class="col-span-12 xl:col-span-4">
+    <ng-template #subtitle>
+        <span translate>dashboard.charts.dnsDistribution</span>
+    </ng-template>
+    <div class="flex justify-center items-center mt-2">
+        <p-chart type="pie" [data]="providerDistributionData" [options]="providerDistributionOptions" />
+    </div>
+</p-card>

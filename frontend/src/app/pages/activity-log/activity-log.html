@@ -1,0 +1,115 @@
+<div class="card">
+    <h2 class="mb-4">{{ 'activityLog.title' | translate }}</h2>
+    <p class="text-surface-600 dark:text-surface-400 mb-6">{{ 'activityLog.description' | translate }}</p>
+
+    <div class="flex justify-content-between align-items-center mb-5 gap-3">
+        <p-buttongroup>
+            <p-button [label]="'activityLog.refresh' | translate" icon="pi pi-refresh" (onClick)="reloadTableData()"
+                severity="primary">
+            </p-button>
+            <p-button [label]="'activityLog.cleanup' | translate" icon="pi pi-trash" (onClick)="cleanupOldLogs()"
+                severity="danger">
+            </p-button>
+        </p-buttongroup>
+    </div>
+
+    <!-- Activity Table -->
+    <p-table #dt [value]="activities" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [loading]="loading"
+        [paginator]="true" [rows]="10" [totalRecords]="totalRecords" [rowsPerPageOptions]="[10, 25, 50]"
+        [showCurrentPageReport]="true" [currentPageReportTemplate]="'currentPageReportTemplate' | translate"
+        [filterDelay]="300" sortField="domain" [sortOrder]="1" styleClass="p-datatable-striped">
+
+        <ng-template #header>
+            <tr>
+                <th style="width: 50px;">
+                    <i class="pi pi-info-circle"></i>
+                </th>
+                <th>
+                    <div class="flex items-center justify-between">
+                        {{ 'activityLog.type' | translate }}
+                        <p-columnFilter field="type" matchMode="equals" display="menu" operator="or"
+                            [showMatchModes]="false" [showOperator]="false" [showAddButton]="false">
+                            <ng-template #filter let-value let-filter="filterCallback">
+                                <p-multiselect [ngModel]="value" [options]="getActivityTypes()" [filter]="true"
+                                    (ngModelChange)="filter($event)" class="w-full">
+                                    <ng-template let-option #item>
+                                        <p-tag [value]="option.label" [severity]="getActivityTypeColor(option.value)" />
+                                    </ng-template>
+                                </p-multiselect>
+                            </ng-template>
+                        </p-columnFilter>
+                    </div>
+                </th>
+                <th>
+                    <div class="flex items-center justify-between">
+                        {{ 'activityLog.details' | translate }}
+                        <p-columnFilter type="text" field="metadata.resourceName" display="menu" matchMode="contains"
+                            [showMatchModes]="true" />
+                    </div>
+                </th>
+                <th style="width: 150px;">
+
+                    <div class="flex items-center justify-between">
+                        {{ 'activityLog.user' | translate }}
+                        <p-columnFilter field="username" matchMode="equals" display="menu" operator="or"
+                            [showMatchModes]="false" [showOperator]="false" [showAddButton]="false">
+                            <ng-template #filter let-value let-filter="filterCallback">
+                                <p-multiselect [ngModel]="value" [options]="users" [filter]="true"
+                                    (ngModelChange)="filter($event)" class="w-full">
+                                    <ng-template let-option #item>
+                                        <p-tag [value]="option.label" [severity]="option.value" />
+                                    </ng-template>
+                                </p-multiselect>
+                            </ng-template>
+                        </p-columnFilter>
+                    </div>
+                </th>
+                <th style="width: 180px;">
+                    <div class="flex items-center justify-between">
+                        {{ 'activityLog.timestamp' | translate }}
+                        <p-columnFilter type="date" field="timestamp" display="menu">
+                            <ng-template #filter let-value let-filter="filterCallback">
+                                <p-datepicker [ngModel]="value" (ngModelChange)="filter($event)" [showTime]="true"
+                                    [hourFormat]="hourFormat" [dateFormat]="dateFormat" [showIcon]="true"
+                                    iconDisplay="input">
+                                </p-datepicker>
+                            </ng-template>
+                        </p-columnFilter>
+                    </div>
+                </th>
+            </tr>
+        </ng-template>
+
+        <ng-template #body let-activity>
+            <tr>
+                <td class="text-center">
+                    <i [class]="getActivityIcon(activity.type)"
+                        [style.color]="getActivityTypeColor(activity.type) === 'danger' ? '#ef4444' : getActivityTypeColor(activity.type) === 'success' ? '#22c55e' : '#3b82f6'"></i>
+                </td>
+                <td>
+                    <p-tag [value]="'activityLog.types.' + activity.type | translate"
+                        [severity]="getActivityTypeColor(activity.type)">
+                    </p-tag>
+                </td>
+                <td>
+                    @for(item of getMetadataEntries(activity.metadata); track item.key) {
+                    <div class="font-bold">{{ item.key }}:</div>
+                    <div class="font-mono mb-2 ms-2" style="white-space: pre-wrap;">{{ item.value }}</div>
+                    }
+                </td>
+                <td>{{ activity.username }}</td>
+                <td>{{ activity.timestamp | date:'short':undefined:translateService.getCurrentLang() }}</td>
+            </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="5" class="text-center">
+                    {{ 'activityLog.noActivities' | translate }}
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<p-confirmDialog></p-confirmDialog>
