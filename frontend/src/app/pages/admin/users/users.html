@@ -9,9 +9,9 @@
     </div>
 
     <p-table #dt [value]="users" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [loading]="loading" [paginator]="true"
-        [rows]="10" [totalRecords]="totalRecords" [rowsPerPageOptions]="[10, 25, 50]" [showCurrentPageReport]="true"
-        [currentPageReportTemplate]="'currentPageReportTemplate' | translate" [filterDelay]="300" sortField="domain"
-        [sortOrder]="1" styleClass="p-datatable-striped">
+        [rows]="50" [totalRecords]="totalRecords" [rowsPerPageOptions]="[10, 25, 50, 100, 200]"
+        [showCurrentPageReport]="true" [currentPageReportTemplate]="'currentPageReportTemplate' | translate"
+        [filterDelay]="300" sortField="domain" [sortOrder]="1" styleClass="p-datatable-striped">
 
         <ng-template #header>
             <tr>

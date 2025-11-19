@@ -11,8 +11,7 @@ import { LayoutService } from '../service/layout.service';
     // eslint-disable-next-line @angular-eslint/component-selector
     selector: '[app-menuitem]',
     imports: [CommonModule, RouterModule, RippleModule],
-    templateUrl: './app.menuitem.html',
-    providers: [LayoutService]
+    templateUrl: './app.menuitem.html'
 })
 export class AppMenuitem implements OnInit {
     private router = inject(Router);

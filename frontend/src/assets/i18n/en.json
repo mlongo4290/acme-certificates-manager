@@ -171,7 +171,7 @@
         "role": "Role",
         "roles": {
             "admin": "Admin",
-            "user": "User",
+            "readOnly": "Read only",
             "certManager": "Certificate Manager"
         },
         "confirmDelete": "Are you sure you want to delete this user?",

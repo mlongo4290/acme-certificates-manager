@@ -26,7 +26,6 @@ import { AgendaService } from '../../services/agenda.service';
         ToastModule,
         ProgressSpinnerModule
     ],
-    providers: [MessageService],
     templateUrl: './renewal-calendar.html'
 })
 export class RenewalCalendarComponent implements OnInit {

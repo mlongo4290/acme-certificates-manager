@@ -64,8 +64,7 @@ import { SshKeyService } from '../../services/ssh-key.service';
         MultiSelectModule,
         CertificateViewerComponent
     ],
-    templateUrl: './certificates.html',
-    providers: [MessageService, ConfirmationService]
+    templateUrl: './certificates.html'
 })
 export class CertificatesComponent implements OnInit {
     private certificateService = inject(CertificateService);

@@ -42,7 +42,6 @@ import { ActivityLog, ActivityLogService } from '../../services/activity-log.ser
         DatePickerModule,
         MultiSelectModule
     ],
-    providers: [ConfirmationService, MessageService],
     templateUrl: './activity-log.html'
 })
 export class ActivityLogComponent implements OnInit {

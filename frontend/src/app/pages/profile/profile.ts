@@ -47,7 +47,6 @@ import { UserService } from '../../services/user.service';
         TagModule,
         ConfirmDialogModule,
     ],
-    providers: [MessageService, ConfirmationService],
     templateUrl: './profile.html'
 })
 export class ProfileComponent implements OnInit {

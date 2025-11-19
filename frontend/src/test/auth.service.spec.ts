@@ -120,7 +120,7 @@ describe('AuthService', () => {
                     id: '1',
                     username: 'mfauser',
                     authProvider: 'local',
-                    role: 'certManager'
+                    role: 'CERT_MANAGER'
                 }
             };
 
@@ -175,7 +175,7 @@ describe('AuthService', () => {
             });
 
             expect(service.hasRole('ADMIN')).toBeTrue();
-            expect(service.hasRole('certManager')).toBeFalse();
+            expect(service.hasRole('CERT_MANAGER')).toBeFalse();
         });
 
         it('should return false when no user', () => {

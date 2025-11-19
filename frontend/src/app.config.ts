@@ -5,6 +5,7 @@ import { provideRouter, withEnabledBlockingInitialNavigation, withInMemoryScroll
 import { provideMissingTranslationHandler, provideTranslateService } from "@ngx-translate/core";
 import { provideTranslateHttpLoader } from "@ngx-translate/http-loader";
 import Aura from '@primeuix/themes/aura';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app/app.routes';
 import { authInterceptor } from './app/interceptors/auth.interceptor';
@@ -47,6 +48,8 @@ export const appConfig: ApplicationConfig = {
                 provideMissingTranslationHandler(ACMMissingTranslationHandler),
             fallbackLang: 'en',
             lang: 'en'
-        })
+        }),
+        MessageService,
+        ConfirmationService
     ]
 };

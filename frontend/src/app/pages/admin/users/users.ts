@@ -42,8 +42,7 @@ import { AuthProviderService } from '../../../services/auth-provider.service';
         IconFieldModule,
         InputIconModule
     ],
-    templateUrl: './users.html',
-    providers: [MessageService, ConfirmationService]
+    templateUrl: './users.html'
 })
 export class UsersComponent implements OnInit {
     private adminUserService = inject(AdminUserService);
@@ -63,7 +62,7 @@ export class UsersComponent implements OnInit {
     roleOptions = [
         { label: this.translateService.instant('users.roles.admin'), value: 'ADMIN' },
         { label: this.translateService.instant('users.roles.certManager'), value: 'CERT_MANAGER' },
-        { label: this.translateService.instant('users.roles.user'), value: 'USER' }
+        { label: this.translateService.instant('users.roles.readOnly'), value: 'READ_ONLY' }
     ];
 
     providerOptions: any[] = [];
@@ -84,7 +83,7 @@ export class UsersComponent implements OnInit {
             this.roleOptions = [
                 { label: this.translateService.instant('users.roles.admin'), value: 'ADMIN' },
                 { label: this.translateService.instant('users.roles.certManager'), value: 'CERT_MANAGER' },
-                { label: this.translateService.instant('users.roles.user'), value: 'USER' }
+                { label: this.translateService.instant('users.roles.readOnly'), value: 'READ_ONLY' }
             ];
         });
     }
@@ -197,7 +196,7 @@ export class UsersComponent implements OnInit {
             username: '',
             email: '',
             password: '',
-            role: 'certManager',
+            role: 'CERT_MANAGER',
             authProvider: 'local',
             isActive: true
         };

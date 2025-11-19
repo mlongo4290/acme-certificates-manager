@@ -54,8 +54,7 @@ interface CredentialField {
         InputIconModule,
         MultiSelectModule
     ],
-    templateUrl: './dns-providers.html',
-    providers: [MessageService, ConfirmationService]
+    templateUrl: './dns-providers.html'
 })
 export class DnsProvidersComponent implements OnInit {
     private dnsProviderService = inject(DnsProviderService);

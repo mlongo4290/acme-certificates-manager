@@ -22,7 +22,7 @@ export interface LoginResponse {
         username: string;
         authProvider: 'local' | 'ldap' | 'oauth2' | 'azure-ad' | 'oidc' | 'saml';
         authProviderName?: string;
-        role: 'ADMIN' | 'certManager';
+        role: 'ADMIN' | 'CERT_MANAGER' | 'READ_ONLY';
     };
 }
 
@@ -34,7 +34,7 @@ export class AuthService {
     private readonly TOKEN_KEY = 'auth_token';
 
     isAuthenticated = signal<boolean>(this.isTokenValid());
-    currentUser = signal<{ id: string; username: string; authProvider: 'local' | 'ldap' | 'oauth2' | 'azure-ad' | 'oidc' | 'saml'; authProviderName?: string; role: 'ADMIN' | 'certManager' } | null>(null);
+    currentUser = signal<{ id: string; username: string; authProvider: 'local' | 'ldap' | 'oauth2' | 'azure-ad' | 'oidc' | 'saml'; authProviderName?: string; role: 'ADMIN' | 'CERT_MANAGER' | 'READ_ONLY' } | null>(null);
 
     constructor(private http: HttpClient, private router: Router) {
         // Check if user is already authenticated on init
@@ -119,7 +119,7 @@ export class AuthService {
         }
     }
 
-    hasRole(role: 'ADMIN' | 'certManager'): boolean {
+    hasRole(role: 'ADMIN' | 'CERT_MANAGER' | 'READ_ONLY'): boolean {
         return this.currentUser()?.role === role;
     }
 

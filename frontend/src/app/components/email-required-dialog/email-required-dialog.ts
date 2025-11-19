@@ -22,7 +22,6 @@ import { UserService } from '../../services/user.service';
         ButtonModule,
         ToastModule
     ],
-    providers: [MessageService],
     templateUrl: './email-required-dialog.html'
 })
 export class EmailRequiredDialogComponent implements OnInit {
@@ -61,7 +60,7 @@ export class EmailRequiredDialogComponent implements OnInit {
             return;
         }
 
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const emailRegex = /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
         if (!emailRegex.test(this.email)) {
             this.messageService.add({
                 severity: 'error',

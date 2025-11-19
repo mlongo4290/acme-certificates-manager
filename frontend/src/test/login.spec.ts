@@ -79,13 +79,13 @@ describe('Login Component', () => {
         expect(component).toBeTruthy();
     });
 
-    xit('should initialize with empty credentials', () => {
+    it('should initialize with empty credentials', () => {
         expect(component.username).toBe('');
         expect(component.password).toBe('');
         expect(component.isLoading).toBeFalse();
     });
 
-    xdescribe('onLogin', () => {
+    describe('onLogin', () => {
         it('should login successfully', () => {
             const mockResponse: LoginResponse = {
                 token: 'test-token',
@@ -104,7 +104,7 @@ describe('Login Component', () => {
             component.onLogin();
 
             expect(authServiceSpy.login).toHaveBeenCalled();
-            //expect(routerSpy.navigateByUrl).toHaveBeenCalled();
+            expect(routerSpy.navigateByUrl).toHaveBeenCalled();
         });
 
         it('should handle MFA required', () => {
@@ -147,7 +147,7 @@ describe('Login Component', () => {
         });
     });
 
-    xdescribe('verifyMfa', () => {
+    describe('verifyMfa', () => {
         it('should verify MFA successfully', () => {
             const mockResponse: LoginResponse = {
                 token: 'mfa-token',
@@ -155,7 +155,7 @@ describe('Login Component', () => {
                     id: '1',
                     username: 'mfauser',
                     authProvider: 'local',
-                    role: 'certManager'
+                    role: 'CERT_MANAGER'
                 }
             };
 
@@ -166,7 +166,7 @@ describe('Login Component', () => {
             component.verifyMfa();
 
             expect(authServiceSpy.verifyMfaToken).toHaveBeenCalled();
-            //expect(routerSpy.navigateByUrl).toHaveBeenCalled();
+            expect(routerSpy.navigateByUrl).toHaveBeenCalled();
         });
 
         it('should validate token length', () => {

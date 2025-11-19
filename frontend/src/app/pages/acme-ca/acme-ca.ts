@@ -41,8 +41,7 @@ import { AcmeCaService } from '../../services/acme-ca.service';
         InputIconModule,
         MultiSelectModule
     ],
-    templateUrl: './acme-ca.html',
-    providers: [MessageService, ConfirmationService]
+    templateUrl: './acme-ca.html'
 })
 export class AcmeCaComponent {
     private acmeCaService = inject(AcmeCaService);

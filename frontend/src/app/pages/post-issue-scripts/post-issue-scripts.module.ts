@@ -34,8 +34,7 @@ import { TooltipModule } from 'primeng/tooltip';
         TooltipModule,
         TranslatePipe
     ],
-    templateUrl: './post-issue-scripts.html',
-    providers: [MessageService, ConfirmationService]
+    templateUrl: './post-issue-scripts.html'
 })
 export class PostIssueScriptsComponent implements OnInit {
     private postIssueScriptsService = inject(PostIssueScriptsService);

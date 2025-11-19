@@ -33,8 +33,7 @@ import { SshKey, SshKeyService } from '../../services/ssh-key.service';
         ConfirmDialogModule,
         ToastModule
     ],
-    templateUrl: './ssh-keys.html',
-    providers: [MessageService, ConfirmationService]
+    templateUrl: './ssh-keys.html'
 })
 export class SshKeysComponent {
     private sshKeyService = inject(SshKeyService);

@@ -40,8 +40,7 @@ import { AcmeCaService } from '../../services/acme-ca.service';
         InputIconModule,
         MultiSelectModule
     ],
-    templateUrl: './acme-accounts.html',
-    providers: [MessageService, ConfirmationService]
+    templateUrl: './acme-accounts.html'
 })
 export class AcmeAccountsComponent implements OnInit {
     private acmeAccountService = inject(AcmeAccountService);

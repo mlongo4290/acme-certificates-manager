@@ -16,6 +16,7 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { PasswordModule } from 'primeng/password';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
@@ -44,9 +45,9 @@ import { AuthProvider, AuthProviderService } from '../../../services/auth-provid
         TextareaModule,
         InputIconModule,
         IconFieldModule,
-        MultiSelectModule
+        MultiSelectModule,
+        TagModule
     ],
-    providers: [ConfirmationService, MessageService],
     templateUrl: './auth-providers.html'
 })
 export class AuthProvidersComponent {
@@ -389,32 +390,6 @@ export class AuthProvidersComponent {
                 }
             });
         }
-    }
-
-    toggleProvider(provider: AuthProvider): void {
-        const updatedProvider = { ...provider, enabled: !provider.enabled };
-
-        this.authProviderService.updateProvider(provider._id!, updatedProvider).subscribe({
-            next: () => {
-                this.messageService.add({
-                    severity: 'success',
-                    summary: this.translateService.instant('common.success'),
-                    detail: this.translateService.instant('authProviders.success.statusUpdated', {
-                        status: updatedProvider.enabled
-                            ? this.translateService.instant('common.enabled')
-                            : this.translateService.instant('common.disabled')
-                    })
-                });
-                this.reloadTableData();
-            },
-            error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: this.translateService.instant('common.error'),
-                    detail: this.translateService.instant('authProviders.errors.updateFailed')
-                });
-            }
-        });
     }
 
     deleteProvider(provider: AuthProvider): void {
