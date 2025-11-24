@@ -21,7 +21,7 @@
     "currentPageReportTemplate": "{first} - {last} di {totalRecords}",
     "goToDashboard": "Vai alla Dashboard",
     "home": "Home",
-    "madeWith": "Realizzato con ",
+    "madeWith": "Realizzato con SAKAI di ",
     "errorOccurred": "Si è verificato un errore",
     "requestedResourceNotAvailable": "La risorsa richiesta non è disponibile",
     "notFound": "Non trovato",
