@@ -7,6 +7,7 @@ import { $t, updatePreset, updateSurfacePalette } from '@primeuix/themes';
 import Aura from '@primeuix/themes/aura';
 import Lara from '@primeuix/themes/lara';
 import Nora from '@primeuix/themes/nora';
+import { ButtonModule } from 'primeng/button';
 import { PrimeNG } from 'primeng/config';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { LayoutService } from '../service/layout.service';
@@ -40,7 +41,7 @@ declare type SurfacesType = {
 @Component({
     selector: 'app-configurator',
     standalone: true,
-    imports: [CommonModule, FormsModule, SelectButtonModule, TranslateModule],
+    imports: [CommonModule, FormsModule, SelectButtonModule, TranslateModule, ButtonModule],
     templateUrl: './app.configurator.html',
     host: {
         class: 'hidden absolute top-13 right-0 w-72 p-4 bg-surface-0 dark:bg-surface-900 border border-surface rounded-border origin-top shadow-[0px_3px_5px_rgba(0,0,0,0.02),0px_0px_2px_rgba(0,0,0,0.05),0px_1px_4px_rgba(0,0,0,0.08)]'
@@ -446,6 +447,25 @@ export class AppConfigurator implements OnInit {
                 ...state,
                 darkTheme: value === 'dark'
             }));
+        }
+    }
+
+    resetToDefault() {
+        this.layoutService.resetAll();
+        const config = this.layoutService.layoutConfig();
+
+        // Re-apply the default preset
+        this.onPresetChange(config.preset);
+
+        // Re-apply default colors
+        const defaultPrimary = this.primaryColors().find(c => c.name === config.primary);
+        if (defaultPrimary) {
+            this.applyTheme('primary', defaultPrimary);
+        }
+
+        const defaultSurface = this.surfaces.find(s => s.name === config.surface);
+        if (defaultSurface) {
+            this.applyTheme('surface', defaultSurface);
         }
     }
 }

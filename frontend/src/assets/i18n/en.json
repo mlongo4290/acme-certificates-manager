@@ -16,6 +16,7 @@
     "surface": "Surface",
     "presets": "Presets",
     "menuMode": "Menu Mode",
+    "resetToDefault": "Reset to Default",
     "validationError": "Validation error",
     "currentPageReportTemplate": "{first} - {last} of {totalRecords}",
     "goToDashboard": "Go to Dashboard",

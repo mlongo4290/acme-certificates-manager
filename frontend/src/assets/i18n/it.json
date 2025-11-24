@@ -16,6 +16,7 @@
     "surface": "Superficie",
     "presets": "Predefiniti",
     "menuMode": "Modalità menu",
+    "resetToDefault": "Reimposta ai valori predefiniti",
     "validationError": "Errore di validazione",
     "currentPageReportTemplate": "{first} - {last} di {totalRecords}",
     "goToDashboard": "Vai alla Dashboard",

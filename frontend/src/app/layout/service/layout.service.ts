@@ -28,7 +28,7 @@ interface MenuChangeEvent {
 export class LayoutService {
     _config: layoutConfig = {
         preset: 'Aura',
-        primary: 'emerald',
+        primary: 'blue',
         surface: null,
         darkTheme: false,
         menuMode: 'static'
@@ -138,7 +138,11 @@ export class LayoutService {
     private saveConfigToStorage(config: layoutConfig): void {
         try {
             let toSave: any = {
-                darkTheme: config.darkTheme
+                darkTheme: config.darkTheme,
+                preset: config.preset,
+                primary: config.primary,
+                surface: config.surface,
+                menuMode: config.menuMode
             };
 
             // Add followSystemTheme flag only if currently following system
@@ -210,17 +214,24 @@ export class LayoutService {
         this.layoutConfig.update((state) => ({
             ...state,
             preset: 'Aura',
-            primary: 'emerald',
+            primary: 'blue',
             surface: null
         }));
     }
 
     resetAll(): void {
         localStorage.removeItem('layoutConfig');
+        const systemDarkMode = this.getSystemDarkMode();
+
+        // Reset to defaults and follow system theme
+        this.followingSystemTheme.set(true);
         this.layoutConfig.set({
             ...this._config,
-            darkTheme: this.getSystemDarkMode()
+            darkTheme: systemDarkMode,
+            menuMode: 'static'
         });
+
+        this.resetColorScheme();
     }
 
     private handleDarkModeTransition(config: layoutConfig): void {
