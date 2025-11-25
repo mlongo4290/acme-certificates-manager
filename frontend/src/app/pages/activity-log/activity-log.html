@@ -17,14 +17,15 @@
     <p-table #dt [value]="activities" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [loading]="loading"
         [paginator]="true" [rows]="50" [totalRecords]="totalRecords" [rowsPerPageOptions]="[10, 25, 50, 100, 200]"
         [showCurrentPageReport]="true" [currentPageReportTemplate]="'currentPageReportTemplate' | translate"
-        [filterDelay]="300" sortField="domain" [sortOrder]="1" styleClass="p-datatable-striped">
+        [filterDelay]="300" sortField="domain" [sortOrder]="1" styleClass="p-datatable-striped"
+        [scrollable]="true">
 
         <ng-template #header>
             <tr>
-                <th style="width: 50px;">
+                <th style="width: 60px; min-width: 60px;">
                     <i class="pi pi-info-circle"></i>
                 </th>
-                <th>
+                <th style="width: 200px; min-width: 200px;">
                     <div class="flex items-center justify-between">
                         {{ 'activityLog.type' | translate }}
                         <p-columnFilter field="type" matchMode="equals" display="menu" operator="or"
@@ -40,14 +41,14 @@
                         </p-columnFilter>
                     </div>
                 </th>
-                <th>
+                <th style="width: 350px; min-width: 300px; max-width: 350px;">
                     <div class="flex items-center justify-between">
                         {{ 'activityLog.details' | translate }}
                         <p-columnFilter type="text" field="metadata.resourceName" display="menu" matchMode="contains"
                             [showMatchModes]="true" />
                     </div>
                 </th>
-                <th style="width: 150px;">
+                <th style="width: 150px; min-width: 150px;">
 
                     <div class="flex items-center justify-between">
                         {{ 'activityLog.user' | translate }}
@@ -64,7 +65,7 @@
                         </p-columnFilter>
                     </div>
                 </th>
-                <th style="width: 180px;">
+                <th style="width: 180px; min-width: 180px;">
                     <div class="flex items-center justify-between">
                         {{ 'activityLog.timestamp' | translate }}
                         <p-columnFilter type="date" field="timestamp" display="menu">
@@ -82,23 +83,25 @@
 
         <ng-template #body let-activity>
             <tr>
-                <td class="text-center">
+                <td class="text-center" style="width: 60px;">
                     <i [class]="getActivityIcon(activity.type)"
                         [style.color]="getActivityTypeColor(activity.type) === 'danger' ? '#ef4444' : getActivityTypeColor(activity.type) === 'success' ? '#22c55e' : '#3b82f6'"></i>
                 </td>
-                <td>
+                <td style="width: 200px;">
                     <p-tag [value]="'activityLog.types.' + activity.type | translate"
                         [severity]="getActivityTypeColor(activity.type)">
                     </p-tag>
                 </td>
-                <td>
-                    @for(item of getMetadataEntries(activity.metadata); track item.key) {
-                    <div class="font-bold">{{ item.key }}:</div>
-                    <div class="font-mono mb-2 ms-2" style="white-space: pre-wrap;">{{ item.value }}</div>
-                    }
+                <td style="width: 350px; max-width: 350px; overflow: hidden;">
+                    <div style="max-height: 200px; overflow-y: auto; word-break: break-word;">
+                        @for(item of getMetadataEntries(activity.metadata); track item.key) {
+                        <div class="font-bold">{{ item.key }}:</div>
+                        <div class="font-mono mb-2 ms-2" style="white-space: pre-wrap; word-wrap: break-word;">{{ item.value }}</div>
+                        }
+                    </div>
                 </td>
-                <td>{{ activity.username }}</td>
-                <td>{{ activity.timestamp | date:'short':undefined:translateService.getCurrentLang() }}</td>
+                <td style="width: 150px;">{{ activity.username }}</td>
+                <td style="width: 180px;">{{ activity.timestamp | date:'short':undefined:translateService.getCurrentLang() }}</td>
             </tr>
         </ng-template>
 
