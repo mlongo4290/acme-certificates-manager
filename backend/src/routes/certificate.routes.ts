@@ -12,6 +12,7 @@ export const createCertificateRouter = (controller: CertificateController) => {
     router.get('/proxy-ca-cert', authMiddleware as any, controller.downloadCACertificate);
     router.get('/:id/issue', sseAuthMiddleware as any, controller.issueCertificate);
     router.get('/:id/reissue', sseAuthMiddleware as any, controller.reissueCertificate);
+    router.get('/:id/logs', authMiddleware as any, controller.getCertificateLogs);
     router.get('/:id', authMiddleware as any, controller.getCertificateById);
     router.get('/:id/download/:type', authMiddleware as any, controller.downloadCertificate);
     router.post('/', authMiddleware as any, controller.createCertificate);

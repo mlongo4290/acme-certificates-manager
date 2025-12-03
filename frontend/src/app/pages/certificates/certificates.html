@@ -187,6 +187,9 @@
                             [text]="true" />
                         }
 
+                        <p-button icon="pi pi-history" [pTooltip]="'certificates.viewLogs' | translate"
+                            (click)="showLogs(cert)" [disabled]="saving" severity="secondary" [text]="true" />
+
                         <p-button icon="pi pi-pencil" [pTooltip]="'certificates.edit' | translate"
                             (click)="showEditDialog(cert)" [disabled]="saving" severity="secondary" [text]="true" />
 
@@ -649,6 +652,74 @@
 
     <ng-template #footer>
         <p-button [label]="'common.close' | translate" icon="pi pi-times" (click)="displayScriptErrorDialog = false"
+            severity="secondary" />
+    </ng-template>
+</p-dialog>
+
+<!-- Execution Logs Dialog -->
+<p-dialog [(visible)]="displayLogsDialog" [header]="'certificates.executionLogs' | translate" [modal]="true"
+    [closable]="true" [draggable]="false" [resizable]="false" [style]="{ width: '900px', maxHeight: '80vh' }">
+    <div class="flex flex-col gap-4 py-4">
+        @if (loadingLogs) {
+        <div class="flex justify-content-center align-items-center py-6">
+            <p-progress-spinner [style]="{ width: '50px', height: '50px' }" />
+        </div>
+        } @else if (certificateLogs.length === 0) {
+        <div class="text-center py-6 text-surface-500">
+            <i class="pi pi-info-circle text-4xl mb-3"></i>
+            <p>{{ 'certificates.noLogsFound' | translate }}</p>
+        </div>
+        } @else {
+        <div class="flex flex-col gap-2 max-h-[60vh] overflow-y-auto">
+            @for (log of certificateLogs; track log._id) {
+            <div
+                class="bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg p-3">
+                <div class="flex justify-content-between align-items-start gap-3 mb-2">
+                    <p-tag [value]="getLogTypeLabel(log.type)" [severity]="getLogSeverity(log.type)" />
+                    <span class="text-sm text-surface-500">
+                        {{ log.timestamp | date:'medium':undefined:translateService.getCurrentLang() }}
+                    </span>
+                </div>
+                <div style="word-break: break-word;">
+                    @for(item of getMetadataEntries(log.metadata); track item.key) {
+                    <div class="font-bold">{{ item.key }}:</div>
+                    <div class="font-mono mb-2 ms-2" style="white-space: pre-wrap; word-wrap: break-word;">{{ item.value
+                        }}</div>
+                    }
+                </div>
+
+                <!--@if (log.metadata) {
+                <div class="text-sm text-surface-700 dark:text-surface-300 space-y-1">
+                    @if (log.metadata.domain) {
+                    <div><strong>{{ 'certificates.domain' | translate }}:</strong> {{ log.metadata.domain }}</div>
+                    }
+                    @if (log.metadata.scriptName) {
+                    <div><strong>{{ 'certificates.scriptName' | translate }}:</strong> {{ log.metadata.scriptName }}
+                    </div>
+                    }
+                    @if (log.metadata.error) {
+                    <div
+                        class="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
+                        <pre
+                            class="text-xs font-mono whitespace-pre-wrap text-red-700 dark:text-red-300 m-0">{{ log.metadata.error }}</pre>
+                    </div>
+                    }
+                    @if (log.metadata.output) {
+                    <div class="mt-2 p-2 bg-surface-100 dark:bg-surface-900 rounded max-h-32 overflow-y-auto">
+                        <pre
+                            class="text-xs font-mono whitespace-pre-wrap text-surface-600 dark:text-surface-400 m-0">{{ log.metadata.output }}</pre>
+                    </div>
+                    }
+                </div>
+                }-->
+            </div>
+            }
+        </div>
+        }
+    </div>
+
+    <ng-template #footer>
+        <p-button [label]="'common.close' | translate" icon="pi pi-times" (click)="displayLogsDialog = false"
             severity="secondary" />
     </ng-template>
 </p-dialog>

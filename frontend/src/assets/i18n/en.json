@@ -419,7 +419,8 @@
             "scriptExecutionError": "Script execution error",
             "connectionError": "Failed to connect to remote server",
             "deleteFailed": "Failed to delete certificate",
-            "loadFailed": "Failed to load certificate details"
+            "loadFailed": "Failed to load certificate details",
+            "loadLogs": "Failed to load certificate logs"
         },
         "placeholders": {
             "domain": "example.com",
@@ -548,6 +549,18 @@
             "quovadisEV": "QuoVadis EV",
             "identrustCA": "IdenTrust CA",
             "sbgpCertAAServerAuth": "SBGP Cert AA Server Auth"
+        },
+        "logs": "Logs",
+        "viewLogs": "View Execution Logs",
+        "executionLogs": "Certificate Execution Logs",
+        "noLogsFound": "No logs found for this certificate",
+        "scriptName": "Script",
+        "logTypes": {
+            "certificateRenewed": "Certificate Renewed",
+            "certificateIssued": "Certificate Issued",
+            "certificateError": "Certificate Error",
+            "postScriptExecuted": "Post-Issue Script Executed",
+            "postScriptFailed": "Post-Issue Script Failed"
         }
     },
     "dnsProviders": {

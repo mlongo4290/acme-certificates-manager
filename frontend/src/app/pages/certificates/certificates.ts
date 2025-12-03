@@ -88,8 +88,11 @@ export class CertificatesComponent implements OnInit {
     displayDialog = false;
     displayProgressDialog = false;
     displayScriptErrorDialog = false;
+    displayLogsDialog = false;
     scriptErrorDetails: { output?: string; error?: string } = {};
     progressMessages: string[] = [];
+    certificateLogs: any[] = [];
+    loadingLogs = false;
     loading = false;
     saving = false;
     activeTabIndex = 0;
@@ -1007,6 +1010,49 @@ export class CertificatesComponent implements OnInit {
         }
     }
 
+    showLogs(cert: Certificate) {
+        this.displayLogsDialog = true;
+        this.loadingLogs = true;
+        this.certificateLogs = [];
+
+        this.certificateService.getCertificateLogs(cert._id!).subscribe({
+            next: (logs) => {
+                this.certificateLogs = logs;
+                this.loadingLogs = false;
+            },
+            error: (error) => {
+                console.error('Error loading certificate logs:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.translateService.instant('common.error'),
+                    detail: this.translateService.instant('certificates.errors.loadLogs')
+                });
+                this.loadingLogs = false;
+                this.displayLogsDialog = false;
+            }
+        });
+    }
+
+    getLogTypeLabel(type: string): string {
+        const typeMap: { [key: string]: string } = {
+            'certificateRenewed': this.translateService.instant('certificates.logTypes.certificateRenewed'),
+            'certificateIssued': this.translateService.instant('certificates.logTypes.certificateIssued'),
+            'certificateError': this.translateService.instant('certificates.logTypes.certificateError'),
+            'postScriptExecuted': this.translateService.instant('certificates.logTypes.postScriptExecuted'),
+            'postScriptFailed': this.translateService.instant('certificates.logTypes.postScriptFailed')
+        };
+        return typeMap[type] || type;
+    }
+
+    getLogSeverity(type: string): 'success' | 'info' | 'warn' | 'danger' {
+        if (type === 'certificateRenewed' || type === 'certificateIssued' || type === 'postScriptExecuted') {
+            return 'success';
+        } else if (type === 'certificateError' || type === 'postScriptFailed') {
+            return 'danger';
+        }
+        return 'info';
+    }
+
     downloadCertificate(cert: Certificate, type: 'cert' | 'key' | 'fullchain' | 'zip') {
         const token = this.authService.getToken();
         const url = `${this.certificateService['apiUrl']}/${cert._id}/download/${type}`;
@@ -1123,6 +1169,13 @@ export class CertificatesComponent implements OnInit {
         } else {
             this.selectedScriptDetails = null;
         }
+    }
+
+    getMetadataEntries(metadata: any): { key: string; value: any }[] {
+        return Object.entries(metadata).map(([key, value]) => ({
+            key,
+            value: typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) : value
+        }));
     }
 }
 

@@ -135,4 +135,8 @@ export class CertificateService {
 
         return this.http.get<SchedulingConflict>(`${this.apiUrl}/check-scheduling-conflicts`, { params });
     }
+
+    getCertificateLogs(id: string): Observable<any[]> {
+        return this.http.get<any[]>(`${this.apiUrl}/${id}/logs`);
+    }
 }

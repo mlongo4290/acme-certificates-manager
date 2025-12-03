@@ -419,7 +419,8 @@
             "scriptExecutionError": "Errore di esecuzione script",
             "connectionError": "Errore di connessione al server remoto",
             "deleteFailed": "Impossibile eliminare il certificato",
-            "loadFailed": "Impossibile caricare i dettagli del certificato"
+            "loadFailed": "Impossibile caricare i dettagli del certificato",
+            "loadLogs": "Impossibile caricare i log del certificato"
         },
         "placeholders": {
             "domain": "esempio.it",
@@ -548,6 +549,18 @@
             "quovadisEV": "QuoVadis EV",
             "identrustCA": "IdenTrust CA",
             "sbgpCertAAServerAuth": "Autenticazione server SBGP Cert AA"
+        },
+        "logs": "Log",
+        "viewLogs": "Visualizza log di esecuzione",
+        "executionLogs": "Log di esecuzione certificato",
+        "noLogsFound": "Nessun log trovato per questo certificato",
+        "scriptName": "Script",
+        "logTypes": {
+            "certificateRenewed": "Certificato rinnovato",
+            "certificateIssued": "Certificato emesso",
+            "certificateError": "Errore certificato",
+            "postScriptExecuted": "Script post-emissione eseguito",
+            "postScriptFailed": "Script post-emissione fallito"
         }
     },
     "dnsProviders": {

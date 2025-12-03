@@ -104,13 +104,17 @@ export class NotificationService {
             }
 
             // Send email using template
-            await this.emailService.sendEmail(
+            const emailSent = await this.emailService.sendEmail(
                 user.email,
                 subject,
                 templateName,
                 templateVariables,
                 language
             );
+
+            if (!emailSent) {
+                throw new Error('Email sending failed');
+            }
 
             logEntry.status = 'sent';
             logEntry.sentAt = new Date();

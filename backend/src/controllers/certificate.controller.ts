@@ -738,4 +738,39 @@ export class CertificateController {
             warning: conflictCount > 5 ? 'high' : conflictCount > 2 ? 'medium' : 'none'
         });
     });
+
+    /**
+     * Get execution logs for a certificate (renewal + post-issue scripts)
+     */
+    getCertificateLogs = asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
+
+        const certificate = await Certificate.findById(id);
+        if (!certificate) {
+            res.status(404).json({ message: 'Certificate not found' });
+            return;
+        }
+
+        // Import ActivityLog here to avoid circular dependency
+        const { ActivityLog } = await import('../models/ActivityLog');
+
+        // Get all logs related to this certificate
+        const logs = await ActivityLog.find({
+            'metadata.resourceId': id,
+            type: {
+                $in: [
+                    'certificateRenewed',
+                    'certificateIssued',
+                    'certificateError',
+                    'postScriptExecuted',
+                    'postScriptFailed'
+                ]
+            }
+        })
+            .sort({ timestamp: -1 })
+            .limit(50)
+            .lean();
+
+        res.json(logs);
+    });
 }
