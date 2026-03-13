@@ -3,7 +3,9 @@ import { ChangeDetectorRef, Component, inject, OnInit, ViewChild } from '@angula
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import { ButtonModule } from 'primeng/button';
+import { ChipModule } from 'primeng/chip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
@@ -41,7 +43,9 @@ import { SshKeyService } from '../../services/ssh-key.service';
         CommonModule,
         FormsModule,
         TranslateModule,
+        AutoCompleteModule,
         ButtonModule,
+        ChipModule,
         TableModule,
         DialogModule,
         InputTextModule,
@@ -135,6 +139,18 @@ export class CertificatesComponent implements OnInit {
     displayCertificateViewer = false;
     selectedCertificatePem: string | null = null;
 
+    // Tags
+    allTags: string[] = [];
+    filteredTags: string[] = [];
+    newTag = '';
+    tagFilterValue = '';
+
+    // Bulk selection
+    selectedCertificates: any[] = [];
+    bulkActionLoading = false;
+
+    exportZipLoading = false;
+
     statuses = [
         { label: this.translateService.instant('certificates.status.valid'), value: 'valid' },
         { label: this.translateService.instant('certificates.status.expired'), value: 'expired' },
@@ -151,6 +167,7 @@ export class CertificatesComponent implements OnInit {
     certificateForm: any = {
         domain: '',
         additionalDomains: [],
+        tags: [],
         challengeType: 'http-01',
         certificateAuthority: '',
         acmeAccount: '',
@@ -184,6 +201,7 @@ export class CertificatesComponent implements OnInit {
         this.loadPostIssueScripts();
         this.loadSshKeys();
         this.loadRenewalConfig();
+        this.loadAllTags();
 
         this.translateService.onLangChange.subscribe(() => {
             this.statuses = [
@@ -287,6 +305,7 @@ export class CertificatesComponent implements OnInit {
         this.certificateForm = {
             domain: '',
             additionalDomains: [],
+            tags: [],
             challengeType: 'http-01',
             certificateAuthority: defaultCa?.value || '',
             acmeAccount: '',
@@ -345,10 +364,11 @@ export class CertificatesComponent implements OnInit {
             _id: certificate._id,
             domain: certificate.domain,
             additionalDomains: certificate.additionalDomains ? [...certificate.additionalDomains] : [],
+            tags: certificate.tags ? [...certificate.tags] : [],
             challengeType: certificate.challengeType,
-            certificateAuthority: certificate.certificateAuthority || '',
-            acmeAccount: certificate.acmeAccount || '',
-            dnsProvider: certificate.dnsProvider || '',
+            certificateAuthority: (certificate.certificateAuthority as any)?._id || certificate.certificateAuthority || '',
+            acmeAccount: (certificate.acmeAccount as any)?._id || certificate.acmeAccount || '',
+            dnsProvider: (certificate.dnsProvider as any)?._id || certificate.dnsProvider || '',
             enabled: certificate.enabled !== false,
             autoRenewal: certificate.autoRenewal,
             renewalSchedule: {
@@ -410,6 +430,7 @@ export class CertificatesComponent implements OnInit {
         const certData = {
             domain: this.certificateForm.domain,
             additionalDomains: this.certificateForm.additionalDomains || [],
+            tags: this.certificateForm.tags || [],
             challengeType: this.certificateForm.challengeType,
             certificateAuthority: this.certificateForm.certificateAuthority,
             acmeAccount: this.certificateForm.acmeAccount,
@@ -1279,6 +1300,131 @@ export class CertificatesComponent implements OnInit {
             key,
             value: typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) : value
         }));
+    }
+
+    loadAllTags() {
+        this.certificateService.getAllTags().subscribe({
+            next: (tags) => {
+                this.allTags = tags;
+            },
+            error: () => {}
+        });
+    }
+
+    filterTags(event: any) {
+        this.filteredTags = this.allTags.filter(t => t.toLowerCase().includes((event.query || '').toLowerCase()));
+    }
+
+    addTag() {
+        const tag = (this.newTag || '').trim();
+        if (tag && !this.certificateForm.tags.includes(tag)) {
+            this.certificateForm.tags.push(tag);
+        }
+        this.newTag = '';
+    }
+
+    removeTag(index: number) {
+        this.certificateForm.tags.splice(index, 1);
+    }
+
+    bulkEnable() {
+        const ids = this.selectedCertificates.map((c: any) => c._id);
+        this.bulkActionLoading = true;
+        this.certificateService.bulkAction(ids, 'enable').subscribe({
+            next: (result) => {
+                this.messageService.add({ severity: 'success', summary: this.translateService.instant('common.success'), detail: this.translateService.instant('certificates.bulk.enabled', { count: result.count }) });
+                this.selectedCertificates = [];
+                this.reloadTableData();
+                this.bulkActionLoading = false;
+            },
+            error: () => { this.bulkActionLoading = false; }
+        });
+    }
+
+    bulkDisable() {
+        const ids = this.selectedCertificates.map((c: any) => c._id);
+        this.bulkActionLoading = true;
+        this.certificateService.bulkAction(ids, 'disable').subscribe({
+            next: (result) => {
+                this.messageService.add({ severity: 'success', summary: this.translateService.instant('common.success'), detail: this.translateService.instant('certificates.bulk.disabled', { count: result.count }) });
+                this.selectedCertificates = [];
+                this.reloadTableData();
+                this.bulkActionLoading = false;
+            },
+            error: () => { this.bulkActionLoading = false; }
+        });
+    }
+
+    bulkDelete() {
+        this.confirmationService.confirm({
+            message: this.translateService.instant('certificates.bulk.confirmDelete', { count: this.selectedCertificates.length }),
+            header: this.translateService.instant('common.confirm'),
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: this.translateService.instant('yes'),
+            rejectLabel: this.translateService.instant('no'),
+            accept: () => {
+                const ids = this.selectedCertificates.map((c: any) => c._id);
+                this.bulkActionLoading = true;
+                this.certificateService.bulkAction(ids, 'delete').subscribe({
+                    next: (result) => {
+                        this.messageService.add({ severity: 'success', summary: this.translateService.instant('common.success'), detail: this.translateService.instant('certificates.bulk.deleted', { count: result.count }) });
+                        this.selectedCertificates = [];
+                        this.reloadTableData();
+                        this.bulkActionLoading = false;
+                    },
+                    error: () => { this.bulkActionLoading = false; }
+                });
+            }
+        });
+    }
+
+    bulkExportZip() {
+        const ids = this.selectedCertificates.map((c: any) => c._id);
+        this.exportZipLoading = true;
+        this.certificateService.exportZip(ids).subscribe({
+            next: (blob) => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `certificates-${new Date().toISOString().split('T')[0]}.zip`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                this.exportZipLoading = false;
+                this.messageService.add({
+                    severity: 'success',
+                    summary: this.translateService.instant('common.success'),
+                    detail: this.translateService.instant('certificates.bulk.exported', { count: ids.length })
+                });
+            },
+            error: (error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.translateService.instant('common.error'),
+                    detail: error.error?.message || this.translateService.instant('certificates.errors.exportFailed')
+                });
+                this.exportZipLoading = false;
+            }
+        });
+    }
+
+    exportSingleCertZip(cert: any) {
+        this.certificateService.exportZip([cert._id]).subscribe({
+            next: (blob) => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${cert.domain}-${new Date().toISOString().split('T')[0]}.zip`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+            },
+            error: (error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.translateService.instant('common.error'),
+                    detail: error.error?.message || this.translateService.instant('certificates.errors.exportFailed')
+                });
+            }
+        });
     }
 }
 

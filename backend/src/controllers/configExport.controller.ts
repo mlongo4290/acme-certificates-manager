@@ -1,37 +1,55 @@
 import { Request, Response } from 'express';
+import * as archiver from 'archiver';
+import AdmZip from 'adm-zip';
 import { AcmeCa } from '../models/AcmeCa';
 import { AcmeAccount } from '../models/AcmeAccount';
 import { Certificate } from '../models/certificate.model';
 import { DnsProvider } from '../models/dnsProvider.model';
 import { PostIssueScript } from '../models/postIssueScript.model';
 import { Webhook } from '../models/webhook.model';
+import { passwordEncrypt, passwordDecrypt } from '../utils/encryption';
 
-const EXPORT_VERSION = '1.0';
+const EXPORT_VERSION = '1.1';
 
 export const configExportController = {
 
     async exportConfig(req: Request, res: Response) {
         try {
+            const { includeSecrets = false, includeCertificates = false, password } = req.body || {};
+
+            if ((includeSecrets || includeCertificates) && !password) {
+                return res.status(400).json({ message: 'Password required when exporting secrets or certificate material' });
+            }
+
             const [cas, dnsProviders, acmeAccounts, scripts, webhooks, certificates] = await Promise.all([
                 AcmeCa.find({}),
                 DnsProvider.find({}),
-                AcmeAccount.find({}).select('-accountKeyJwk'),
+                AcmeAccount.find({}).select(includeSecrets ? '' : '-accountKeyJwk'),
                 PostIssueScript.find({}),
-                Webhook.find({}).select('-secret'),
-                Certificate.find({}).select('-certificate -privateKey -fullChain')
+                Webhook.find({}).select(includeSecrets ? '' : '-secret'),
+                Certificate.find({}).select(includeCertificates ? '' : '-certificate -privateKey -fullChain')
             ]);
 
-            const exportData = {
+            const meta = {
                 version: EXPORT_VERSION,
                 exportedAt: new Date().toISOString(),
+                hasSecrets: includeSecrets,
+                hasCertMaterial: includeCertificates,
+                encrypted: (includeSecrets || includeCertificates) && !!password
+            };
+
+            const configData = {
                 certificateAuthorities: cas.map(ca => ca.toObject()),
                 dnsProviders: dnsProviders.map(p => p.toObject()),
-                acmeAccounts: acmeAccounts.map(a => a.toObject()),
+                acmeAccounts: acmeAccounts.map(a => {
+                    const obj = a.toObject();
+                    if (includeSecrets) return obj; // keep accountKeyJwk
+                    return obj; // already excluded by select
+                }),
                 postIssueScripts: scripts.map(s => s.toObject()),
                 webhooks: webhooks.map(w => w.toObject()),
                 certificates: certificates.map(cert => {
                     const obj = cert.toObject();
-                    // Reset runtime state — will need re-issuance on new instance
                     return {
                         ...obj,
                         status: 'pending',
@@ -46,21 +64,158 @@ export const configExportController = {
                 })
             };
 
-            const filename = `acme-config-${new Date().toISOString().split('T')[0]}.json`;
+            // If secrets/certmaterial are included and we need encryption,
+            // extract them from configData and store separately encrypted
+            let secretsEnc: string | null = null;
+            let certMaterialEnc: string | null = null;
+
+            if (includeSecrets && password) {
+                const secretsData = {
+                    acmeAccountKeys: acmeAccounts.map(a => {
+                        const obj = a.toObject() as any;
+                        return { _id: obj._id?.toString(), accountKeyJwk: obj.accountKeyJwk };
+                    }),
+                    webhookSecrets: webhooks.map(w => {
+                        const obj = w.toObject() as any;
+                        return { _id: obj._id?.toString(), secret: obj.secret };
+                    })
+                };
+                secretsEnc = passwordEncrypt(JSON.stringify(secretsData), password);
+                // Remove sensitive fields from configData
+                configData.acmeAccounts = configData.acmeAccounts.map((a: any) => {
+                    const { accountKeyJwk, ...rest } = a;
+                    return rest;
+                });
+                configData.webhooks = configData.webhooks.map((w: any) => {
+                    const { secret, ...rest } = w;
+                    return rest;
+                });
+            }
+
+            if (includeCertificates && password) {
+                const certMaterialData = certificates.map(cert => {
+                    const obj = cert.toObject() as any;
+                    return {
+                        _id: obj._id?.toString(),
+                        domain: obj.domain,
+                        certificate: obj.certificate,
+                        privateKey: obj.privateKey,
+                        fullChain: obj.fullChain
+                    };
+                });
+                certMaterialEnc = passwordEncrypt(JSON.stringify(certMaterialData), password);
+                // Remove PEM fields from configData
+                configData.certificates = configData.certificates.map((c: any) => {
+                    const { certificate, privateKey, fullChain, ...rest } = c;
+                    return rest;
+                });
+            }
+
+            // Build ZIP in memory
+            const filename = `acme-config-${new Date().toISOString().split('T')[0]}.zip`;
+
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-            res.setHeader('Content-Type', 'application/json');
-            res.json(exportData);
+            res.setHeader('Content-Type', 'application/zip');
+
+            const archive = archiver.default('zip', { zlib: { level: 6 } });
+            archive.pipe(res);
+
+            archive.append(JSON.stringify(meta, null, 2), { name: 'meta.json' });
+            archive.append(JSON.stringify(configData, null, 2), { name: 'config.json' });
+
+            if (secretsEnc) {
+                archive.append(secretsEnc, { name: 'secrets.enc' });
+            }
+            if (certMaterialEnc) {
+                archive.append(certMaterialEnc, { name: 'certmaterial.enc' });
+            }
+
+            await archive.finalize();
         } catch (error: any) {
-            res.status(500).json({ message: 'Export failed', error: error.message });
+            if (!res.headersSent) {
+                res.status(500).json({ message: 'Export failed', error: error.message });
+            }
         }
     },
 
     async importConfig(req: Request, res: Response) {
         try {
-            const data = req.body;
+            const { zipData, password } = req.body;
 
-            if (!data || data.version !== EXPORT_VERSION) {
+            if (!zipData) {
+                return res.status(400).json({ message: 'No ZIP data provided' });
+            }
+
+            const zipBuffer = Buffer.from(zipData, 'base64');
+            const zip = new AdmZip(zipBuffer);
+
+            const metaEntry = zip.getEntry('meta.json');
+            const configEntry = zip.getEntry('config.json');
+
+            if (!metaEntry || !configEntry) {
+                return res.status(400).json({ message: 'Invalid export archive: missing required files' });
+            }
+
+            const meta = JSON.parse(metaEntry.getData().toString('utf8'));
+            const data = JSON.parse(configEntry.getData().toString('utf8'));
+
+            if (!meta.version || !meta.version.startsWith('1.')) {
                 return res.status(400).json({ message: 'Invalid or unsupported export file format' });
+            }
+
+            if (meta.encrypted && !password) {
+                return res.status(400).json({ message: 'Password required to import this archive' });
+            }
+
+            // Decrypt secrets if present
+            const secretsEntry = zip.getEntry('secrets.enc');
+            if (secretsEntry && password) {
+                try {
+                    const secretsData = JSON.parse(passwordDecrypt(secretsEntry.getData().toString('utf8'), password));
+                    // Merge accountKeyJwk back
+                    const keyMap = new Map<string, string>();
+                    for (const item of (secretsData.acmeAccountKeys || [])) {
+                        if (item._id && item.accountKeyJwk) keyMap.set(item._id, item.accountKeyJwk);
+                    }
+                    const secretMap = new Map<string, string>();
+                    for (const item of (secretsData.webhookSecrets || [])) {
+                        if (item._id && item.secret) secretMap.set(item._id, item.secret);
+                    }
+                    data.acmeAccounts = (data.acmeAccounts || []).map((a: any) => ({
+                        ...a,
+                        accountKeyJwk: keyMap.get(a._id?.toString()) || undefined
+                    }));
+                    data.webhooks = (data.webhooks || []).map((w: any) => ({
+                        ...w,
+                        secret: secretMap.get(w._id?.toString()) || undefined
+                    }));
+                } catch {
+                    return res.status(400).json({ message: 'Failed to decrypt secrets: wrong password?' });
+                }
+            }
+
+            // Decrypt cert material if present
+            const certMaterialEntry = zip.getEntry('certmaterial.enc');
+            if (certMaterialEntry && password) {
+                try {
+                    const certMaterialData: any[] = JSON.parse(passwordDecrypt(certMaterialEntry.getData().toString('utf8'), password));
+                    const certMap = new Map<string, any>();
+                    for (const item of certMaterialData) {
+                        if (item._id) certMap.set(item._id, item);
+                    }
+                    data.certificates = (data.certificates || []).map((c: any) => {
+                        const material = certMap.get(c._id?.toString());
+                        if (!material) return c;
+                        return {
+                            ...c,
+                            certificate: material.certificate,
+                            privateKey: material.privateKey,
+                            fullChain: material.fullChain
+                        };
+                    });
+                } catch {
+                    return res.status(400).json({ message: 'Failed to decrypt certificate material: wrong password?' });
+                }
             }
 
             const summary = {
@@ -73,7 +228,6 @@ export const configExportController = {
                 errors: [] as string[]
             };
 
-            // Maps from original IDs to new IDs
             const caIdMap = new Map<string, string>();
             const dnsIdMap = new Map<string, string>();
             const accountIdMap = new Map<string, string>();
@@ -157,12 +311,11 @@ export const configExportController = {
                         accountIdMap.set(account._id.toString(), existing._id.toString());
                         summary.acmeAccounts.skipped++;
                     } else {
-                        const { _id, __v, createdAt, updatedAt, accountKeyJwk, accountUrl, registeredAt, ...accountData } = account;
+                        const { _id, __v, createdAt, updatedAt, accountUrl, registeredAt, ...accountData } = account;
                         const newCaId = caIdMap.get(account.caId?.toString() || '');
                         const created = await AcmeAccount.create({
                             ...accountData,
                             caId: newCaId || account.caId,
-                            // accountKeyJwk intentionally omitted — will need re-registration
                         });
                         accountIdMap.set(account._id.toString(), created._id.toString());
                         summary.acmeAccounts.created++;
@@ -172,7 +325,7 @@ export const configExportController = {
                 }
             }
 
-            // 6. Import Certificates (after all dependencies mapped)
+            // 6. Import Certificates
             for (const cert of (data.certificates || [])) {
                 try {
                     const existing = await Certificate.findOne({ domain: cert.domain });
@@ -181,18 +334,15 @@ export const configExportController = {
                     } else {
                         const {
                             _id, __v, createdAt, updatedAt,
-                            certificate, privateKey, fullChain,
                             issueDate, lastRenewalAttempt, lastRenewalStatus,
                             lastScriptExecution, lastScriptStatus,
                             ...certData
                         } = cert;
 
-                        // Resolve references
                         const newCaId = caIdMap.get(cert.certificateAuthority?.toString() || '');
                         const newAccountId = accountIdMap.get(cert.acmeAccount?.toString() || '');
                         const newDnsId = cert.dnsProvider ? dnsIdMap.get(cert.dnsProvider.toString()) : undefined;
 
-                        // Map post-issue script references
                         const mappedScripts = (cert.postIssueScripts || []).map((ps: any) => ({
                             ...ps,
                             script: scriptIdMap.get(ps.script?.toString() || '') || ps.script

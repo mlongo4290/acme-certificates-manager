@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { PostIssueScriptController } from '../controllers/postIssueScript.controller';
+import { authMiddleware, requireAdminOrCertManager } from '../middleware/auth';
 
 const router = Router();
 const controller = new PostIssueScriptController();
@@ -11,14 +12,17 @@ const upload = multer({
     limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
-router.get('/', controller.getAllScripts);
-router.get('/base_path', controller.getBasePath);
-router.get('/:id/export', controller.exportScript);
-router.post('/:id/run-init', controller.runInit);
-router.get('/:id', controller.getScriptById);
-router.post('/', controller.createScript);
-router.post('/import', upload.single('file'), controller.importScript);
-router.put('/:id', controller.updateScript);
-router.delete('/:id', controller.deleteScript);
+// Read: all authenticated users
+router.get('/', authMiddleware as any, controller.getAllScripts);
+router.get('/base_path', authMiddleware as any, controller.getBasePath);
+router.get('/:id', authMiddleware as any, controller.getScriptById);
+router.get('/:id/export', authMiddleware as any, controller.exportScript);
+
+// Write: ADMIN or CERT_MANAGER only
+router.post('/', authMiddleware as any, requireAdminOrCertManager as any, controller.createScript);
+router.post('/import', authMiddleware as any, requireAdminOrCertManager as any, upload.single('file'), controller.importScript);
+router.put('/:id', authMiddleware as any, requireAdminOrCertManager as any, controller.updateScript);
+router.delete('/:id', authMiddleware as any, requireAdminOrCertManager as any, controller.deleteScript);
+router.post('/:id/run-init', authMiddleware as any, requireAdminOrCertManager as any, controller.runInit);
 
 export default router;

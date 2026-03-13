@@ -392,6 +392,18 @@
         "postIssueScripts": {
             "title": "Script post-emissione"
         },
+        "tags": "Tag",
+        "addTag": "Aggiungi tag...",
+        "filterByTag": "Filtra per tag",
+        "bulk": {
+            "selected": "selezionati",
+            "enabled": "{{count}} certificati abilitati",
+            "disabled": "{{count}} certificati disabilitati",
+            "deleted": "{{count}} certificati eliminati",
+            "confirmDelete": "Eliminare {{count}} certificati selezionati?",
+            "exportZip": "Esporta ZIP",
+            "exported": "{{count}} certificato/i esportato/i"
+        },
         "enabled": "Abilitato",
         "enabledHint": "La pianificazione del rinnovo è disabilitata per questo certificato",
         "actions": {
@@ -404,6 +416,7 @@
             "downloadKey": "Scarica chiave privata",
             "downloadFullchain": "Scarica fullchain",
             "downloadZip": "Scarica tutto come ZIP",
+            "exportZip": "Esporta come ZIP",
             "viewDetails": "Visualizza dettagli certificato",
             "enable": "Abilita certificato",
             "disable": "Disabilita certificato"
@@ -430,7 +443,8 @@
             "connectionError": "Errore di connessione al server remoto",
             "deleteFailed": "Impossibile eliminare il certificato",
             "loadFailed": "Impossibile caricare i dettagli del certificato",
-            "loadLogs": "Impossibile caricare i log del certificato"
+            "loadLogs": "Impossibile caricare i log del certificato",
+            "exportFailed": "Esportazione certificati fallita"
         },
         "placeholders": {
             "domain": "esempio.it",
@@ -1046,16 +1060,16 @@
         "description": "Backup e ripristino della configurazione di ACME Certificates Manager",
         "export": {
             "title": "Esporta Configurazione",
-            "description": "Scarica la configurazione completa come file JSON. Usa questa funzione per backup o migrazione.",
-            "includes": "Incluso",
-            "excludes": "Escluso",
+            "description": "Scarica la configurazione completa come archivio ZIP. Usa questa funzione per backup o migrazione.",
+            "includes": "Sempre incluso",
+            "excludes": "Escluso per default",
             "includesList": {
                 "cas": "Autorità di certificazione",
                 "dnsProviders": "Provider DNS (con credenziali)",
-                "acmeAccounts": "Account ACME (senza chiavi private)",
+                "acmeAccounts": "Account ACME",
                 "scripts": "Script post-emissione",
-                "webhooks": "Webhook (senza segreti)",
-                "certificates": "Configurazioni certificati (senza materiale cert/chiave)"
+                "webhooks": "Webhook",
+                "certificates": "Configurazioni certificati"
             },
             "excludesList": {
                 "certMaterial": "Certificati e chiavi private (devono essere riemessi)",
@@ -1063,16 +1077,26 @@
                 "webhookSecrets": "Segreti HMAC webhook",
                 "users": "Utenti, token API e provider di autenticazione"
             },
-            "sensitiveWarning": "Il file di esportazione può contenere dati sensibili (credenziali DNS). Conservarlo in modo sicuro.",
+            "optionalData": "Dati sensibili opzionali",
+            "includeSecrets": "Esporta segreti (segreti webhook + chiavi account ACME)",
+            "includeCertificates": "Esporta certificati (PEM cert + chiave privata)",
+            "encryptionPassword": "Password di cifratura",
+            "passwordPlaceholder": "Inserisci una password sicura...",
+            "passwordHint": "I dati sensibili verranno cifrati con AES-256-GCM tramite questa password.",
+            "passwordRequired": "La password è obbligatoria quando si esportano segreti o materiale certificato",
+            "sensitiveWarning": "L'archivio di esportazione può contenere dati sensibili (credenziali DNS). Conservarlo in modo sicuro.",
             "button": "Scarica Configurazione",
             "success": "Configurazione esportata con successo",
             "error": "Esportazione configurazione fallita"
         },
         "import": {
             "title": "Importa Configurazione",
-            "description": "Ripristina la configurazione da un file JSON esportato in precedenza. Le entità esistenti con lo stesso nome verranno saltate.",
-            "selectFile": "File di configurazione",
-            "chooseFile": "Scegli file...",
+            "description": "Ripristina la configurazione da un archivio ZIP esportato in precedenza. Le entità esistenti con lo stesso nome verranno saltate.",
+            "selectFile": "Archivio di configurazione",
+            "chooseFile": "Scegli file ZIP...",
+            "password": "Password di decifratura",
+            "passwordPlaceholder": "Inserisci la password se l'archivio è cifrato...",
+            "passwordHint": "Necessaria solo se l'archivio è stato esportato con segreti o materiale certificato.",
             "skipInfo": "Le voci esistenti (verificate per nome/dominio) verranno saltate — nessun dato verrà sovrascritto.",
             "button": "Importa Configurazione",
             "result": "Risultati Importazione",
@@ -1080,7 +1104,7 @@
             "created": "Creati",
             "skipped": "Saltati",
             "errors": "Errori",
-            "invalidFile": "File JSON non valido",
+            "invalidFile": "File ZIP non valido",
             "success": "Importazione completata: {{count}} entità create",
             "error": "Importazione configurazione fallita"
         }

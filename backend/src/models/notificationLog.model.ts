@@ -16,10 +16,20 @@ const notificationLogSchema = new Schema({
     userId: {
         type: Schema.Types.ObjectId,
         ref: 'User',
-        required: true,
+        required: false,
+    },
+    webhookId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Webhook',
+        required: false,
+    },
+    channel: {
+        type: String,
+        enum: ['email', 'webhook'],
+        default: 'email',
     },
     recipient: {
-        type: String, // Email address, phone number, webhook URL, etc.
+        type: String, // Email address or webhook URL
         required: true,
     },
     status: {

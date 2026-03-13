@@ -392,6 +392,18 @@
         "postIssueScripts": {
             "title": "Post-Issue Scripts"
         },
+        "tags": "Tags",
+        "addTag": "Add tag...",
+        "filterByTag": "Filter by tag",
+        "bulk": {
+            "selected": "selected",
+            "enabled": "{{count}} certificates enabled",
+            "disabled": "{{count}} certificates disabled",
+            "deleted": "{{count}} certificates deleted",
+            "confirmDelete": "Delete {{count}} selected certificates?",
+            "exportZip": "Export ZIP",
+            "exported": "{{count}} certificate(s) exported"
+        },
         "enabled": "Enabled",
         "enabledHint": "Renewal scheduling is disabled for this certificate",
         "actions": {
@@ -404,6 +416,7 @@
             "downloadKey": "Download Private Key",
             "downloadFullchain": "Download Fullchain",
             "downloadZip": "Download All as ZIP",
+            "exportZip": "Export as ZIP",
             "viewDetails": "View Certificate Details",
             "enable": "Enable Certificate",
             "disable": "Disable Certificate"
@@ -430,7 +443,8 @@
             "connectionError": "Failed to connect to remote server",
             "deleteFailed": "Failed to delete certificate",
             "loadFailed": "Failed to load certificate details",
-            "loadLogs": "Failed to load certificate logs"
+            "loadLogs": "Failed to load certificate logs",
+            "exportFailed": "Failed to export certificates"
         },
         "placeholders": {
             "domain": "example.com",
@@ -1046,16 +1060,16 @@
         "description": "Backup and restore your ACME Certificates Manager configuration",
         "export": {
             "title": "Export Configuration",
-            "description": "Download the full configuration as a JSON file. Use this to backup or migrate to another instance.",
-            "includes": "Included",
-            "excludes": "Excluded",
+            "description": "Download the full configuration as a ZIP archive. Use this to backup or migrate to another instance.",
+            "includes": "Always included",
+            "excludes": "Excluded by default",
             "includesList": {
                 "cas": "Certificate Authorities",
                 "dnsProviders": "DNS Providers (with credentials)",
-                "acmeAccounts": "ACME Accounts (without private keys)",
+                "acmeAccounts": "ACME Accounts",
                 "scripts": "Post-Issue Scripts",
-                "webhooks": "Webhooks (without secrets)",
-                "certificates": "Certificate configurations (without cert/key material)"
+                "webhooks": "Webhooks",
+                "certificates": "Certificate configurations"
             },
             "excludesList": {
                 "certMaterial": "Certificate and private key material (must be re-issued)",
@@ -1063,16 +1077,26 @@
                 "webhookSecrets": "Webhook HMAC secrets",
                 "users": "Users, API tokens and authentication providers"
             },
-            "sensitiveWarning": "The export file may contain sensitive data (DNS credentials). Store it securely.",
+            "optionalData": "Optional sensitive data",
+            "includeSecrets": "Export secrets (webhook secrets + ACME account keys)",
+            "includeCertificates": "Export certificate material (PEM cert + private key)",
+            "encryptionPassword": "Encryption password",
+            "passwordPlaceholder": "Enter a strong password...",
+            "passwordHint": "The sensitive data will be encrypted with AES-256-GCM using this password.",
+            "passwordRequired": "A password is required when exporting secrets or certificate material",
+            "sensitiveWarning": "The export archive may contain sensitive data (DNS credentials). Store it securely.",
             "button": "Download Configuration",
             "success": "Configuration exported successfully",
             "error": "Failed to export configuration"
         },
         "import": {
             "title": "Import Configuration",
-            "description": "Restore configuration from a previously exported JSON file. Existing entities with the same name will be skipped.",
-            "selectFile": "Configuration File",
-            "chooseFile": "Choose file...",
+            "description": "Restore configuration from a previously exported ZIP archive. Existing entities with the same name will be skipped.",
+            "selectFile": "Configuration Archive",
+            "chooseFile": "Choose ZIP file...",
+            "password": "Decryption password",
+            "passwordPlaceholder": "Enter password if archive is encrypted...",
+            "passwordHint": "Required only if the archive was exported with secrets or certificate material.",
             "skipInfo": "Existing entries (matched by name/domain) will be skipped — no data will be overwritten.",
             "button": "Import Configuration",
             "result": "Import Results",
@@ -1080,7 +1104,7 @@
             "created": "Created",
             "skipped": "Skipped",
             "errors": "Errors",
-            "invalidFile": "Invalid JSON file",
+            "invalidFile": "Invalid ZIP file",
             "success": "Import completed: {{count}} entities created",
             "error": "Failed to import configuration"
         }

@@ -424,6 +424,67 @@ export class CertificateController {
         res.json(certificate);
     });
 
+    getAllTags = asyncHandler(async (req: Request, res: Response) => {
+        const tags = await Certificate.distinct('tags');
+        res.json((tags as string[]).filter(Boolean).sort());
+    });
+
+    bulkAction = asyncHandler(async (req: Request, res: Response) => {
+        const { ids, action } = req.body;
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            res.status(400);
+            throw new Error('No certificate IDs provided');
+        }
+
+        switch (action) {
+            case 'enable':
+                await Certificate.updateMany({ _id: { $in: ids } }, { enabled: true });
+                break;
+            case 'disable':
+                await Certificate.updateMany({ _id: { $in: ids } }, { enabled: false });
+                break;
+            case 'delete':
+                await Certificate.deleteMany({ _id: { $in: ids } });
+                await Promise.all(ids.map((id: string) => this.schedulerService.cancelRenewal(id)));
+                break;
+            default:
+                res.status(400);
+                throw new Error('Invalid bulk action');
+        }
+
+        res.json({ count: ids.length, action });
+    });
+
+    exportCertificatesZip = asyncHandler(async (req: Request, res: Response) => {
+        const { ids } = req.body;
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            res.status(400);
+            throw new Error('No certificate IDs provided');
+        }
+
+        const certificates = await Certificate.find({ _id: { $in: ids } });
+        if (certificates.length === 0) {
+            res.status(404);
+            throw new Error('No certificates found');
+        }
+
+        const filename = `certificates-${new Date().toISOString().split('T')[0]}.zip`;
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Type', 'application/zip');
+
+        const zip = archiver('zip', { zlib: { level: 6 } });
+        zip.pipe(res);
+
+        for (const cert of certificates) {
+            const safeDomain = cert.domain.replace(/\*/g, '_wildcard_');
+            zip.append(cert.certificate || '', { name: `${safeDomain}/${safeDomain}.crt` });
+            zip.append(cert.privateKey ? decrypt(cert.privateKey) : '', { name: `${safeDomain}/${safeDomain}.key` });
+            zip.append(cert.fullChain || '', { name: `${safeDomain}/${safeDomain}-fullchain.crt` });
+        }
+
+        await zip.finalize();
+    });
+
     deleteCertificate = asyncHandler(async (req: Request, res: Response) => {
         const certificate = await Certificate.findByIdAndDelete(req.params.id);
         if (!certificate) {

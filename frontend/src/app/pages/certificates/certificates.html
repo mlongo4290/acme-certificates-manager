@@ -4,20 +4,36 @@
     <p class="text-surface-600 dark:text-surface-400 mb-6">{{ 'certificates.description' | translate }}</p>
 
     <div class="flex justify-content-between align-items-center mb-5 gap-3">
-        <div>
-            <p-button [label]="'certificates.create' | translate" icon="pi pi-plus" (onClick)="showCreateDialog()"
-                severity="primary">
-            </p-button>
+        <div class="flex flex-col gap-2">
+            <div class="flex items-center gap-2">
+                <p-button [label]="'certificates.create' | translate" icon="pi pi-plus" (onClick)="showCreateDialog()"
+                    severity="primary">
+                </p-button>
+            </div>
+            @if (selectedCertificates.length > 0) {
+            <div class="flex items-center gap-2 bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-700 rounded px-3 py-2">
+                <span class="text-sm font-medium text-primary">{{ selectedCertificates.length }} {{ 'certificates.bulk.selected' | translate }}</span>
+                <p-button [label]="'certificates.actions.enable' | translate" icon="pi pi-play-circle" severity="success" size="small" (onClick)="bulkEnable()" [loading]="bulkActionLoading" />
+                <p-button [label]="'certificates.actions.disable' | translate" icon="pi pi-pause-circle" severity="warn" size="small" (onClick)="bulkDisable()" [loading]="bulkActionLoading" />
+                <p-button [label]="'common.delete' | translate" icon="pi pi-trash" severity="danger" size="small" (onClick)="bulkDelete()" [loading]="bulkActionLoading" />
+                <p-button [label]="'certificates.bulk.exportZip' | translate" icon="pi pi-file-export" severity="secondary" size="small" (onClick)="bulkExportZip()" [loading]="bulkActionLoading" />
+                <p-button [label]="'common.cancel' | translate" icon="pi pi-times" severity="secondary" size="small" [text]="true" (onClick)="selectedCertificates = []" />
+            </div>
+            }
         </div>
     </div>
 
     <p-table #dt [value]="certificates" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [loading]="loading"
         [paginator]="true" [rows]="50" [totalRecords]="totalRecords" [rowsPerPageOptions]="[10, 25, 50, 100, 200]"
         [showCurrentPageReport]="true" [currentPageReportTemplate]="'currentPageReportTemplate' | translate"
-        [filterDelay]="300" sortField="domain" [sortOrder]="1" styleClass="p-datatable-striped">
+        [filterDelay]="300" sortField="domain" [sortOrder]="1" styleClass="p-datatable-striped"
+        [selection]="selectedCertificates" (selectionChange)="selectedCertificates = $event" selectionMode="multiple" dataKey="_id">
 
         <ng-template #header>
             <tr>
+                <th style="width: 3rem">
+                    <p-tableHeaderCheckbox />
+                </th>
                 <th pSortableColumn="domain" [style]="{ 'min-width': '200px' }">
                     {{ 'certificates.domain' | translate }}
                     <p-sortIcon field="domain" />
@@ -75,6 +91,9 @@
         <ng-template #body let-cert>
             <tr [class.opacity-50]="cert.enabled === false">
                 <td>
+                    <p-tableCheckbox [value]="cert" />
+                </td>
+                <td>
                     <div class="flex flex-col">
                         <span class="font-semibold">{{ cert.domain }}</span>
                         @if (cert.lastRenewalAttempt) {
@@ -82,6 +101,13 @@
                             {{ 'certificates.lastRenewal' | translate }}: {{ cert.lastRenewalAttempt |
                             date:'short':undefined:translateService.getCurrentLang() }}
                         </span>
+                        }
+                        @if (cert.tags && cert.tags.length > 0) {
+                        <div class="flex flex-wrap gap-1 mt-1">
+                            @for (tag of cert.tags; track tag) {
+                            <span class="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-full">{{ tag }}</span>
+                            }
+                        </div>
                         }
                     </div>
                 </td>
@@ -205,6 +231,11 @@
                         <p-button icon="pi pi-download" [pTooltip]="'certificates.actions.download' | translate"
                             (click)="showDownloadMenu($event, cert)" [disabled]="saving" severity="secondary"
                             [text]="true" />
+
+                        <!-- Export ZIP -->
+                        <p-button icon="pi pi-file-export" [pTooltip]="'certificates.actions.exportZip' | translate"
+                            (click)="exportSingleCertZip(cert)" [disabled]="saving" severity="secondary"
+                            [text]="true" />
                         }
 
                         <p-button icon="pi pi-history" [pTooltip]="'certificates.viewLogs' | translate"
@@ -227,7 +258,7 @@
 
         <ng-template #emptymessage>
             <tr>
-                <td colspan="7" class="text-center">
+                <td colspan="8" class="text-center">
                     {{ 'certificates.noCertificates' | translate }}
                 </td>
             </tr>
@@ -237,6 +268,7 @@
     <!-- Download menu - single instance outside the table -->
     <p-menu #downloadMenu [model]="downloadMenuItems" [popup]="true" />
 </div>
+
 
 <!-- Create/Edit Dialog -->
 <p-dialog [(visible)]="displayDialog"
@@ -391,6 +423,30 @@
                                 <small class="text-gray-500">{{ 'certificates.hints.dnsProvider' | translate }}</small>
                             </div>
                             }
+
+                            <div class="flex flex-col gap-2">
+                                <label class="font-semibold">
+                                    {{ 'certificates.tags' | translate }}
+                                    <span class="text-gray-500 text-sm font-normal">({{ 'optional' | translate }})</span>
+                                </label>
+                                <div class="flex gap-2">
+                                    <p-autoComplete [(ngModel)]="newTag" [suggestions]="filteredTags"
+                                        (completeMethod)="filterTags($event)"
+                                        [placeholder]="'certificates.addTag' | translate"
+                                        class="flex-1" appendTo="body" />
+                                    <p-button icon="pi pi-plus" (click)="addTag()" [disabled]="!newTag" severity="secondary" />
+                                </div>
+                                @if (certificateForm.tags?.length > 0) {
+                                <div class="flex flex-wrap gap-2">
+                                    @for (tag of certificateForm.tags; track tag; let i = $index) {
+                                    <div class="flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/40 rounded-full">
+                                        <span class="text-sm text-blue-700 dark:text-blue-300">{{ tag }}</span>
+                                        <i class="pi pi-times text-xs cursor-pointer text-blue-500 hover:text-red-500" (click)="removeTag(i)"></i>
+                                    </div>
+                                    }
+                                </div>
+                                }
+                            </div>
                         </div>
                     </div>
                     <div class="flex pt-4 justify-end">

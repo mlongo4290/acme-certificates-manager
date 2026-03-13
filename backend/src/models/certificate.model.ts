@@ -52,6 +52,11 @@ const certificateSchema = new Schema({
             return this.challengeType === 'dns-01';
         },
     },
+    tags: {
+        type: [String],
+        default: [],
+        index: true
+    },
     autoRenewal: {
         type: Boolean,
         default: true,

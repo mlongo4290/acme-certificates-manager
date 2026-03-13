@@ -1,10 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
+import { CheckboxModule } from 'primeng/checkbox';
 import { FileUploadModule } from 'primeng/fileupload';
 import { MessageModule } from 'primeng/message';
+import { PasswordModule } from 'primeng/password';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
@@ -15,12 +18,15 @@ import { ConfigExportService, ImportResult } from '../../services/config-export.
     standalone: true,
     imports: [
         CommonModule,
+        FormsModule,
         TranslateModule,
         ButtonModule,
+        CheckboxModule,
         FileUploadModule,
+        MessageModule,
+        PasswordModule,
         TableModule,
         TagModule,
-        MessageModule,
         ToastModule
     ],
     templateUrl: './config-export.html'
@@ -32,9 +38,6 @@ export class ConfigExportComponent {
 
     exporting = false;
     importing = false;
-    importData: any = null;
-    selectedFileName = '';
-    importResult: ImportResult | null = null;
 
     exportIncludes = [
         'configExport.export.includesList.cas',
@@ -45,12 +48,21 @@ export class ConfigExportComponent {
         'configExport.export.includesList.certificates'
     ];
 
-    exportExcludes = [
-        'configExport.export.excludesList.certMaterial',
-        'configExport.export.excludesList.acmeKeys',
-        'configExport.export.excludesList.webhookSecrets',
-        'configExport.export.excludesList.users'
-    ];
+    // Export options
+    includeSecrets = false;
+    includeCertificates = false;
+    exportPassword = '';
+
+    // Import state
+    importZipData: string | null = null;
+    selectedFileName = '';
+    importPassword = '';
+    importResult: ImportResult | null = null;
+    importHasEncrypted = false;
+
+    get exportRequiresPassword(): boolean {
+        return this.includeSecrets || this.includeCertificates;
+    }
 
     get importResultRows() {
         if (!this.importResult) return [];
@@ -66,13 +78,26 @@ export class ConfigExportComponent {
     }
 
     exportConfig() {
+        if (this.exportRequiresPassword && !this.exportPassword) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: this.translateService.instant('common.warning'),
+                detail: this.translateService.instant('configExport.export.passwordRequired')
+            });
+            return;
+        }
+
         this.exporting = true;
-        this.configExportService.exportConfig().subscribe({
+        this.configExportService.exportConfig({
+            includeSecrets: this.includeSecrets,
+            includeCertificates: this.includeCertificates,
+            password: this.exportRequiresPassword ? this.exportPassword : undefined
+        }).subscribe({
             next: (blob) => {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `acme-config-${new Date().toISOString().split('T')[0]}.json`;
+                a.download = `acme-config-${new Date().toISOString().split('T')[0]}.zip`;
                 a.click();
                 window.URL.revokeObjectURL(url);
                 this.messageService.add({
@@ -98,30 +123,37 @@ export class ConfigExportComponent {
         if (!file) return;
         this.selectedFileName = file.name;
         this.importResult = null;
+        this.importZipData = null;
+        this.importHasEncrypted = false;
 
         const reader = new FileReader();
         reader.onload = (e) => {
-            try {
-                this.importData = JSON.parse(e.target?.result as string);
-            } catch {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: this.translateService.instant('common.error'),
-                    detail: this.translateService.instant('configExport.import.invalidFile')
-                });
-                this.importData = null;
-                this.selectedFileName = '';
+            const arrayBuffer = e.target?.result as ArrayBuffer;
+            const bytes = new Uint8Array(arrayBuffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
             }
+            this.importZipData = btoa(binary);
         };
-        reader.readAsText(file);
+        reader.onerror = () => {
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translateService.instant('common.error'),
+                detail: this.translateService.instant('configExport.import.invalidFile')
+            });
+            this.importZipData = null;
+            this.selectedFileName = '';
+        };
+        reader.readAsArrayBuffer(file);
     }
 
     importConfig() {
-        if (!this.importData) return;
+        if (!this.importZipData) return;
         this.importing = true;
         this.importResult = null;
 
-        this.configExportService.importConfig(this.importData).subscribe({
+        this.configExportService.importConfig(this.importZipData, this.importPassword || undefined).subscribe({
             next: (result) => {
                 this.importResult = result;
                 const totalCreated = Object.values(result.summary)

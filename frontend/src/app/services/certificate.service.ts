@@ -20,6 +20,7 @@ export interface Certificate {
     certificateAuthority: string; // ObjectId reference to CertificateAuthority
     acmeAccount: string; // ObjectId reference to AcmeAccount
     dnsProvider?: string; // ObjectId, only required if challengeType is 'dns-01'
+    tags?: string[];
     autoRenewal: boolean;
     renewalSchedule: {
         daysBeforeExpiry: number;
@@ -143,5 +144,17 @@ export class CertificateService {
 
     getRenewalConfig(): Observable<{ blackoutWindows: { start: number; end: number }[] }> {
         return this.http.get<{ blackoutWindows: { start: number; end: number }[] }>(`${this.apiUrl}/renewal-config`);
+    }
+
+    getAllTags(): Observable<string[]> {
+        return this.http.get<string[]>(`${this.apiUrl}/tags`);
+    }
+
+    bulkAction(ids: string[], action: string): Observable<{ count: number; action: string }> {
+        return this.http.post<{ count: number; action: string }>(`${this.apiUrl}/bulk`, { ids, action });
+    }
+
+    exportZip(ids: string[]): Observable<Blob> {
+        return this.http.post(`${this.apiUrl}/export-zip`, { ids }, { responseType: 'blob' });
     }
 }

@@ -59,7 +59,14 @@ module.exports = {
       //   '7-20'       → no renewals 07:00–20:00 (office hours)
       //   '7-20,22-23' → multiple windows
       //   '22-6'       → cross-midnight window
-      //RENEWAL_BLACKOUT_WINDOWS: '7-20'
+      //RENEWAL_BLACKOUT_WINDOWS: '7-20',
+
+      // Renewal Retry Configuration
+      // Max retry attempts after a failed renewal before giving up (default: 3)
+      RENEWAL_MAX_RETRIES: '3',
+      // Base delay in minutes between retries - exponential backoff: base * 2^attempt (default: 30)
+      // Retry 1: 30min, Retry 2: 60min, Retry 3: 120min
+      RENEWAL_RETRY_BASE_DELAY_MINUTES: '30'
     },
 
     // PM2 logs configuration (minimal, Winston handles app logs)

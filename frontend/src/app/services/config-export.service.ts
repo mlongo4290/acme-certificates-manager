@@ -21,16 +21,22 @@ export interface ImportResult {
     };
 }
 
+export interface ExportOptions {
+    includeSecrets: boolean;
+    includeCertificates: boolean;
+    password?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ConfigExportService {
     private http = inject(HttpClient);
     private apiUrl = `${environment.apiUrl}/config`;
 
-    exportConfig(): Observable<Blob> {
-        return this.http.get(`${this.apiUrl}/export`, { responseType: 'blob' });
+    exportConfig(options: ExportOptions): Observable<Blob> {
+        return this.http.post(`${this.apiUrl}/export`, options, { responseType: 'blob' });
     }
 
-    importConfig(data: any): Observable<ImportResult> {
-        return this.http.post<ImportResult>(`${this.apiUrl}/import`, data);
+    importConfig(zipData: string, password?: string): Observable<ImportResult> {
+        return this.http.post<ImportResult>(`${this.apiUrl}/import`, { zipData, password });
     }
 }

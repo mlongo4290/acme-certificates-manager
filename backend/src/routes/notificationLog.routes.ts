@@ -4,15 +4,17 @@ import {
     getNotificationStats,
     retryNotification,
 } from '../controllers/notificationLog.controller';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, requireAdminOrCertManager } from '../middleware/auth';
 
 const router = Router();
 
-// All routes require authentication
+// Read: all authenticated users
 router.use(authMiddleware);
 
 router.get('/', getNotificationLogs);
 router.get('/stats', getNotificationStats);
-router.post('/:id/retry', retryNotification);
+
+// Retry: ADMIN or CERT_MANAGER only
+router.post('/:id/retry', requireAdminOrCertManager as any, retryNotification);
 
 export default router;

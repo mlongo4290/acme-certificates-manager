@@ -1,5 +1,7 @@
+import { createHmac } from 'crypto';
 import { NotificationLog } from '../models/notificationLog.model';
 import { User } from '../models/User';
+import { Webhook } from '../models/webhook.model';
 import { EmailService } from './email.service';
 import { Logger } from './logger.service';
 
@@ -48,6 +50,9 @@ export class NotificationService {
                 this.logger.error(`Failed to send email to ${user.email}: ${error.message}`);
             }
         }
+
+        // Also dispatch to all enabled webhooks subscribed to this event
+        await this.sendWebhooks(alertType, metadata);
     }
 
     private async sendEmail(user: any, alertType: AlertType, metadata: NotificationMetadata): Promise<void> {
@@ -128,6 +133,65 @@ export class NotificationService {
 
             this.logger.error(`Failed to send email to ${user.email}: ${error.message}`);
             throw error;
+        }
+    }
+
+    private async sendWebhooks(alertType: AlertType, metadata: NotificationMetadata): Promise<void> {
+        const webhooks = await Webhook.find({ enabled: true, events: alertType });
+        if (webhooks.length === 0) return;
+
+        const payload = {
+            event: alertType,
+            timestamp: new Date().toISOString(),
+            data: metadata,
+        };
+        const body = JSON.stringify(payload);
+
+        for (const webhook of webhooks) {
+            const logEntry = new NotificationLog({
+                alertType,
+                webhookId: webhook._id,
+                channel: 'webhook',
+                recipient: webhook.url,
+                status: 'pending',
+                metadata,
+            });
+
+            try {
+                const headers: Record<string, string> = {
+                    'Content-Type': 'application/json',
+                    'X-Webhook-Event': alertType,
+                    'X-Webhook-Timestamp': String(Date.now()),
+                    ...(webhook.headers as any || {}),
+                };
+
+                if (webhook.secret) {
+                    const sig = createHmac('sha256', webhook.secret).update(body).digest('hex');
+                    headers['X-Webhook-Signature'] = `sha256=${sig}`;
+                }
+
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 10000);
+
+                const response = await fetch(webhook.url, { method: 'POST', headers, body, signal: controller.signal });
+                clearTimeout(timeout);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status} ${response.statusText}`);
+                }
+
+                logEntry.status = 'sent';
+                logEntry.sentAt = new Date();
+                await logEntry.save();
+
+                this.logger.info(`Webhook delivered to ${webhook.url} for ${alertType}`);
+            } catch (error: any) {
+                logEntry.status = 'failed';
+                logEntry.error = error.message;
+                await logEntry.save();
+
+                this.logger.error(`Webhook delivery failed to ${webhook.url}: ${error.message}`);
+            }
         }
     }
 }
