@@ -154,10 +154,11 @@ export class CertificatesComponent implements OnInit {
         certificateAuthority: '',
         acmeAccount: '',
         dnsProvider: '',
+        enabled: true,
         autoRenewal: true,
         renewalSchedule: {
             daysBeforeExpiry: 30,
-            time: new Date(0, 0, 0, 4, 0), // 04:00 as Date object
+            time: new Date(0, 0, 0, 4, 0),
             timeShiftMinutes: 60
         },
         postIssueScripts: []
@@ -173,12 +174,15 @@ export class CertificatesComponent implements OnInit {
     // Expose Object.keys to template
     objectKeys = Object.keys;
 
+    renewalBlackoutWindows: { start: number; end: number }[] = [];
+
     ngOnInit() {
         this.loadDnsProviders();
         this.loadCertificateAuthorities();
         this.loadAcmeAccounts();
         this.loadPostIssueScripts();
         this.loadSshKeys();
+        this.loadRenewalConfig();
 
         this.translateService.onLangChange.subscribe(() => {
             this.statuses = [
@@ -286,11 +290,12 @@ export class CertificatesComponent implements OnInit {
             certificateAuthority: defaultCa?.value || '',
             acmeAccount: '',
             dnsProvider: '',
+            enabled: true,
             autoRenewal: true,
             renewalSchedule: {
                 daysBeforeExpiry: 30,
-                time: new Date(0, 0, 0, 4, 0), // 04:00 as Date object
-                timeShiftMinutes: 60
+                time: this.randomRenewalTime(),
+                timeShiftMinutes: this.randomTimeShift()
             },
             postIssueScripts: []
         };
@@ -343,6 +348,7 @@ export class CertificatesComponent implements OnInit {
             certificateAuthority: certificate.certificateAuthority || '',
             acmeAccount: certificate.acmeAccount || '',
             dnsProvider: certificate.dnsProvider || '',
+            enabled: certificate.enabled !== false,
             autoRenewal: certificate.autoRenewal,
             renewalSchedule: {
                 daysBeforeExpiry: certificate.renewalSchedule.daysBeforeExpiry,
@@ -407,6 +413,7 @@ export class CertificatesComponent implements OnInit {
             certificateAuthority: this.certificateForm.certificateAuthority,
             acmeAccount: this.certificateForm.acmeAccount,
             dnsProvider: this.certificateForm.challengeType === 'dns-01' ? this.certificateForm.dnsProvider : undefined,
+            enabled: this.certificateForm.enabled,
             autoRenewal: this.certificateForm.autoRenewal,
             renewalSchedule: {
                 daysBeforeExpiry: this.certificateForm.renewalSchedule.daysBeforeExpiry,
@@ -463,6 +470,27 @@ export class CertificatesComponent implements OnInit {
                 }
             });
         }
+    }
+
+    toggleEnabled(certificate: Certificate) {
+        const newEnabled = certificate.enabled === false ? true : false;
+        this.certificateService.updateCertificate(certificate._id!, { enabled: newEnabled }).subscribe({
+            next: () => {
+                certificate.enabled = newEnabled;
+                this.messageService.add({
+                    severity: 'success',
+                    summary: this.translateService.instant('common.success'),
+                    detail: this.translateService.instant(newEnabled ? 'certificates.success.enabled' : 'certificates.success.disabled')
+                });
+            },
+            error: (error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.translateService.instant('common.error'),
+                    detail: error.error?.message || this.translateService.instant('certificates.errors.updateFailed')
+                });
+            }
+        });
     }
 
     deleteCertificate(certificate: Certificate) {
@@ -892,6 +920,70 @@ export class CertificatesComponent implements OnInit {
                 });
             }
         });
+    }
+
+    loadRenewalConfig() {
+        this.certificateService.getRenewalConfig().subscribe({
+            next: (config) => {
+                this.renewalBlackoutWindows = config.blackoutWindows ?? [];
+            },
+            error: () => {
+                // Non-critical — defaults stay empty
+            }
+        });
+    }
+
+    /**
+     * Generate a random renewal time (as Date) that falls outside all blackout windows.
+     * If no blackout is configured, picks a random time in the early morning (00:00–07:00).
+     */
+    private randomRenewalTime(): Date {
+        const safe = this.safeMinuteIntervals(this.renewalBlackoutWindows);
+        const total = safe.reduce((acc, [s, e]) => acc + (e - s), 0);
+        let rand = Math.floor(Math.random() * total);
+        let newMinutes = 0;
+        for (const [s, e] of safe) {
+            const len = e - s;
+            if (rand < len) { newMinutes = s + rand; break; }
+            rand -= len;
+        }
+        return new Date(0, 0, 0, Math.floor(newMinutes / 60), newMinutes % 60);
+    }
+
+    /** Return safe (non-blackout) minute intervals [0, 1440). */
+    private safeMinuteIntervals(windows: { start: number; end: number }[]): Array<[number, number]> {
+        if (windows.length === 0) return [[0, 7 * 60]]; // default: early morning
+
+        // Expand windows to minute intervals, splitting cross-midnight ranges
+        const blocked: Array<[number, number]> = [];
+        for (const w of windows) {
+            const s = w.start * 60, e = w.end * 60;
+            if (s < e) { blocked.push([s, e]); }
+            else { blocked.push([s, 1440]); if (e > 0) blocked.push([0, e]); }
+        }
+        // Merge
+        blocked.sort((a, b) => a[0] - b[0]);
+        const merged: Array<[number, number]> = [[...blocked[0]]];
+        for (let i = 1; i < blocked.length; i++) {
+            const last = merged[merged.length - 1];
+            if (blocked[i][0] <= last[1]) last[1] = Math.max(last[1], blocked[i][1]);
+            else merged.push([...blocked[i]]);
+        }
+        // Complement
+        const safe: Array<[number, number]> = [];
+        let cursor = 0;
+        for (const [s, e] of merged) {
+            if (cursor < s) safe.push([cursor, s]);
+            cursor = e;
+        }
+        if (cursor < 1440) safe.push([cursor, 1440]);
+        return safe.length > 0 ? safe : [[0, 7 * 60]];
+    }
+
+    /** Generate a random time-shift window in minutes (multiples of 15, between 15 and 60). */
+    private randomTimeShift(): number {
+        const options = [15, 30, 45, 60];
+        return options[Math.floor(Math.random() * options.length)];
     }
 
     onScriptChange() {

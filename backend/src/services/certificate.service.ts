@@ -11,6 +11,7 @@ import { Certificate } from '../models/certificate.model';
 import { DnsProvider } from '../models/dnsProvider.model';
 import { getCertificateExpiryDate } from '../utils/certificateParser';
 import { decrypt, encrypt } from '../utils/encryption';
+import { applyBlackoutWindows, getBlackoutWindows } from '../utils/renewalSchedule';
 import { AcmeService } from './acme.service';
 import { ActivityLogService } from './activityLog.service';
 import { Logger } from './logger.service';
@@ -237,6 +238,12 @@ export class CertificateService {
             throw new Error('Certificate not found');
         }
 
+        // Skip renewal if certificate is disabled
+        if (certificate.enabled === false) {
+            this.logger.info(`Skipping renewal for disabled certificate ${certificate.domain}`);
+            return { success: false, message: 'Certificate is disabled' };
+        }
+
         try {
             // Reuse the issueCertificate method for renewal
             await this.issueCertificate(certificateId);
@@ -283,7 +290,8 @@ export class CertificateService {
     }
 
     /**
-     * Calculate the renewal date based on certificate expiry and renewal schedule
+     * Calculate the renewal date based on certificate expiry and renewal schedule.
+     * Applies the blackout window if configured via RENEWAL_BLACKOUT_START / RENEWAL_BLACKOUT_END.
      */
     private calculateRenewalDate(expiryDate: Date, renewalSchedule: any): Date {
         const renewalDate = new Date(expiryDate);
@@ -305,7 +313,8 @@ export class CertificateService {
             renewalDate.setMinutes(renewalDate.getMinutes() + shift);
         }
 
-        return renewalDate;
+        // Ensure the final time does not fall within any configured blackout window
+        return applyBlackoutWindows(renewalDate, getBlackoutWindows());
     }
 
     /**
@@ -520,12 +529,12 @@ export class CertificateService {
             // Write certificates to temporary files with secure permissions
             const certFile = `${tempDir}/cert.pem`;
             const keyFile = `${tempDir}/key.pem`;
-            const chainFile = `${tempDir}/fullchain.pem`;
+            const fullChainFile = `${tempDir}/fullchain.pem`;
 
             fs.writeFileSync(certFile, cert.certificate || '', { mode: 0o600 });
             fs.writeFileSync(keyFile, privateKey, { mode: 0o600 });
-            fs.writeFileSync(chainFile, cert.fullChain || '', { mode: 0o600 });
-
+            fs.writeFileSync(fullChainFile, cert.fullChain || '', { mode: 0o600 });
+            
             // Handle SSH key if provided
             let sshKeyFile: string | undefined;
             if (sshKey && sshKey.privateKey) {
@@ -550,7 +559,7 @@ export class CertificateService {
                 CERT_EXPIRY_DATE: cert.expiryDate?.toISOString() || '',
                 CERT_CERTIFICATE_FILE: certFile,
                 CERT_PRIVATE_KEY_FILE: keyFile,
-                CERT_FULL_CHAIN_FILE: chainFile
+                CERT_FULL_CHAIN_FILE: fullChainFile
             };
 
             // Add SSH-related env vars if SSH key is present

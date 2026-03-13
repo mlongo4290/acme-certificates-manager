@@ -49,6 +49,7 @@
         "next": "Next",
         "moveUp": "Move up",
         "moveDown": "Move down",
+        "clone": "Clone",
         "seconds": "seconds",
         "pleaseWait": "Please wait...",
         "type": "Type"
@@ -388,6 +389,8 @@
         "postIssueScripts": {
             "title": "Post-Issue Scripts"
         },
+        "enabled": "Enabled",
+        "enabledHint": "Renewal scheduling is disabled for this certificate",
         "actions": {
             "issue": "Issue Certificate",
             "renew": "Renew Certificate",
@@ -398,7 +401,9 @@
             "downloadKey": "Download Private Key",
             "downloadFullchain": "Download Fullchain",
             "downloadZip": "Download All as ZIP",
-            "viewDetails": "View Certificate Details"
+            "viewDetails": "View Certificate Details",
+            "enable": "Enable Certificate",
+            "disable": "Disable Certificate"
         },
         "confirm": {
             "delete": "Are you sure you want to delete the certificate for '{{domain}}'?",
@@ -408,7 +413,9 @@
             "created": "Certificate created successfully",
             "updated": "Certificate updated successfully",
             "deleted": "Certificate deleted successfully",
-            "downloaded": "Certificate downloaded successfully"
+            "downloaded": "Certificate downloaded successfully",
+            "enabled": "Certificate enabled",
+            "disabled": "Certificate disabled"
         },
         "errors": {
             "failedToCreate": "Failed to create certificate",
@@ -681,6 +688,7 @@
         "create": "Create New Script",
         "edit": "Edit Script",
         "noScripts": "No scripts found",
+        "clonedName": "Copy of {{name}}",
         "path": "Path",
         "entrypoint": "Entrypoint",
         "envVars": "Environment Variables",

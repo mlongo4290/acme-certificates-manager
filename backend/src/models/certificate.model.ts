@@ -108,6 +108,11 @@ const certificateSchema = new Schema({
         type: Boolean,
         default: false,
     },
+    // Flag to enable/disable the certificate renewal scheduling without changing the configuration
+    enabled: {
+        type: Boolean,
+        default: true,
+    },
 }, {
     timestamps: true,
 });

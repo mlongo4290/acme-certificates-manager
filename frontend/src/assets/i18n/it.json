@@ -49,6 +49,7 @@
         "next": "Avanti",
         "moveUp": "Sposta su",
         "moveDown": "Sposta giù",
+        "clone": "Clona",
         "seconds": "secondi",
         "pleaseWait": "Attendere prego...",
         "type": "Tipo"
@@ -388,6 +389,8 @@
         "postIssueScripts": {
             "title": "Script post-emissione"
         },
+        "enabled": "Abilitato",
+        "enabledHint": "La pianificazione del rinnovo è disabilitata per questo certificato",
         "actions": {
             "issue": "Emetti certificato",
             "renew": "Rinnova certificato",
@@ -398,7 +401,9 @@
             "downloadKey": "Scarica chiave privata",
             "downloadFullchain": "Scarica fullchain",
             "downloadZip": "Scarica tutto come ZIP",
-            "viewDetails": "Visualizza dettagli certificato"
+            "viewDetails": "Visualizza dettagli certificato",
+            "enable": "Abilita certificato",
+            "disable": "Disabilita certificato"
         },
         "confirm": {
             "delete": "Sei sicuro di voler eliminare il certificato per '{{domain}}'?",
@@ -408,7 +413,9 @@
             "created": "Certificato creato con successo",
             "updated": "Certificato aggiornato con successo",
             "deleted": "Certificato eliminato con successo",
-            "downloaded": "Certificato scaricato con successo"
+            "downloaded": "Certificato scaricato con successo",
+            "enabled": "Certificato abilitato",
+            "disabled": "Certificato disabilitato"
         },
         "errors": {
             "failedToCreate": "Impossibile creare il certificato",
@@ -681,6 +688,7 @@
         "create": "Crea nuovo script",
         "edit": "Modifica script",
         "noScripts": "Nessuno script trovato",
+        "clonedName": "Copia di {{name}}",
         "path": "Percorso",
         "entrypoint": "Entrypoint",
         "envVars": "Variabili d'ambiente",

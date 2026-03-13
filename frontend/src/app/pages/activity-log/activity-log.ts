@@ -86,7 +86,7 @@ export class ActivityLogComponent implements OnInit {
 
         const page = event.first / event.rows;
         const limit = event.rows;
-        const sortField = event.sortField || 'createdAt';
+        const sortField = event.sortField || 'timestamp';
         const sortOrder = event.sortOrder || -1;
         const filters: any = {};
 

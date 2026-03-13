@@ -73,7 +73,7 @@
         </ng-template>
 
         <ng-template #body let-cert>
-            <tr>
+            <tr [class.opacity-50]="cert.enabled === false">
                 <td>
                     <div class="flex flex-col">
                         <span class="font-semibold">{{ cert.domain }}</span>
@@ -189,6 +189,11 @@
 
                         <p-button icon="pi pi-history" [pTooltip]="'certificates.viewLogs' | translate"
                             (click)="showLogs(cert)" [disabled]="saving" severity="secondary" [text]="true" />
+
+                        <p-button [icon]="cert.enabled === false ? 'pi pi-play-circle' : 'pi pi-pause-circle'"
+                            [pTooltip]="(cert.enabled === false ? 'certificates.actions.enable' : 'certificates.actions.disable') | translate"
+                            (click)="toggleEnabled(cert)" [disabled]="saving"
+                            [severity]="cert.enabled === false ? 'success' : 'warn'" [text]="true" />
 
                         <p-button icon="pi pi-pencil" [pTooltip]="'certificates.edit' | translate"
                             (click)="showEditDialog(cert)" [disabled]="saving" severity="secondary" [text]="true" />
@@ -379,6 +384,14 @@
                             translate }}</div>
 
                         <div class="flex flex-col gap-4">
+                            <div class="flex items-center gap-2">
+                                <p-toggleSwitch [(ngModel)]="certificateForm.enabled" inputId="enabled" />
+                                <label for="enabled" class="font-semibold">{{ 'certificates.enabled' | translate }}</label>
+                                @if (!certificateForm.enabled) {
+                                <span class="text-sm text-orange-500 italic">{{ 'certificates.enabledHint' | translate }}</span>
+                                }
+                            </div>
+
                             <div class="flex items-center gap-2">
                                 <p-toggleSwitch [(ngModel)]="certificateForm.autoRenewal" inputId="autoRenewal" />
                                 <label for="autoRenewal" class="font-semibold">{{ 'certificates.autoRenewal.enabled' |

@@ -8,6 +8,7 @@ export const createCertificateRouter = (controller: CertificateController) => {
     // Apply standard auth middleware to most routes
     router.get('/', authMiddleware as any, controller.getAllCertificates);
     router.get('/stats', authMiddleware as any, controller.getCertificatesStats);
+    router.get('/renewal-config', authMiddleware as any, controller.getRenewalConfig);
     router.get('/check-scheduling-conflicts', authMiddleware as any, controller.checkSchedulingConflicts);
     router.get('/proxy-ca-cert', authMiddleware as any, controller.downloadCACertificate);
     router.get('/:id/issue', sseAuthMiddleware as any, controller.issueCertificate);

@@ -165,6 +165,21 @@ export class PostIssueScriptsComponent implements OnInit {
         this.displayDialog = true;
     }
 
+    cloneScript(script: PostIssueScript) {
+        this.isNewScript = true;
+        this.scriptForm = {
+            ...JSON.parse(JSON.stringify(script)),
+            _id: undefined,
+            name: this.translateService.instant('scripts.clonedName', { name: script.name }),
+            path: ''
+        };
+        this.newEnvVarKey = '';
+        this.newEnvVarDescription = '';
+        this.newEnvVarSensitive = false;
+        this.editingVarIndex = null;
+        this.displayDialog = true;
+    }
+
     editScript(script: PostIssueScript) {
         this.isNewScript = false;
         this.scriptForm = JSON.parse(JSON.stringify(script));

@@ -50,7 +50,16 @@ module.exports = {
       // Activity Log Configuration
       ACTIVITY_LOG_ENABLED: 'true',
       ACTIVITY_LOG_RETENTION_DAYS: '90',
-      ACTIVITY_LOG_HOUSEKEEPING_SCHEDULE: '0 2 * * *'
+      ACTIVITY_LOG_HOUSEKEEPING_SCHEDULE: '0 2 * * *',
+
+      // Renewal Scheduling - Blackout Windows (optional)
+      // Comma-separated START-END pairs (hours 0-23) during which renewals are not scheduled.
+      // Supports multiple ranges and cross-midnight ranges.
+      // Examples:
+      //   '7-20'       → no renewals 07:00–20:00 (office hours)
+      //   '7-20,22-23' → multiple windows
+      //   '22-6'       → cross-midnight window
+      //RENEWAL_BLACKOUT_WINDOWS: '7-20'
     },
 
     // PM2 logs configuration (minimal, Winston handles app logs)

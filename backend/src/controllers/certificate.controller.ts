@@ -9,6 +9,7 @@ import { CertificateService } from '../services/certificate.service';
 import { Logger } from '../services/logger.service';
 import { getCertificateExpiryDate } from '../utils/certificateParser';
 import { decrypt, encrypt } from '../utils/encryption';
+import { applyBlackoutWindows, getBlackoutWindows } from '../utils/renewalSchedule';
 
 export class CertificateController {
     private logger: Logger;
@@ -81,7 +82,8 @@ export class CertificateController {
     }
 
     /**
-     * Calculate the renewal date based on certificate expiry and renewal schedule
+     * Calculate the renewal date based on certificate expiry and renewal schedule.
+     * Applies the blackout window if configured via RENEWAL_BLACKOUT_START / RENEWAL_BLACKOUT_END.
      */
     private calculateRenewalDate(expiryDate: Date, renewalSchedule: any): Date {
         const renewalDate = new Date(expiryDate);
@@ -103,7 +105,8 @@ export class CertificateController {
             renewalDate.setMinutes(renewalDate.getMinutes() + shift);
         }
 
-        return renewalDate;
+        // Ensure the final time does not fall within any configured blackout window
+        return applyBlackoutWindows(renewalDate, getBlackoutWindows());
     }
 
     getAllCertificates = asyncHandler(async (req: Request, res: Response) => {
@@ -236,6 +239,10 @@ export class CertificateController {
                 return { $regex: value, $options: 'i' };
         }
     }
+
+    getRenewalConfig = asyncHandler(async (req: Request, res: Response) => {
+        res.json({ blackoutWindows: getBlackoutWindows() });
+    });
 
     getCertificatesStats = asyncHandler(async (req: Request, res: Response) => {
         const now = new Date();
@@ -397,11 +404,11 @@ export class CertificateController {
 
         // Update schedule if auto-renewal settings changed
         const expiryDate = certificate.certificate ? getCertificateExpiryDate(certificate.certificate) : null;
-        if (certificate.autoRenewal && certificate.renewalSchedule && expiryDate) {
+        if (certificate.enabled !== false && certificate.autoRenewal && certificate.renewalSchedule && expiryDate) {
             const renewalDate = this.calculateRenewalDate(expiryDate, certificate.renewalSchedule);
             await this.schedulerService.scheduleRenewal(certificate._id.toString(), renewalDate);
         } else {
-            // Cancel schedule if auto-renewal is disabled
+            // Cancel schedule if auto-renewal is disabled or certificate is disabled
             await this.schedulerService.cancelRenewal(certificate._id.toString());
         }
 
@@ -445,7 +452,7 @@ export class CertificateController {
             const certificate = await Certificate.findById(certificateId);
             if (certificate) {
                 const expiryDate = certificate.certificate ? getCertificateExpiryDate(certificate.certificate) : null;
-                if (certificate.autoRenewal && certificate.renewalSchedule && expiryDate) {
+                if (certificate.enabled !== false && certificate.autoRenewal && certificate.renewalSchedule && expiryDate) {
                     const renewalDate = this.calculateRenewalDate(expiryDate, certificate.renewalSchedule);
                     await this.schedulerService.scheduleRenewal(certificateId, renewalDate);
                     this.logger.info(`Rescheduled renewal for renewed certificate ${certificateId} at ${renewalDate.toISOString()}`);
@@ -496,7 +503,7 @@ export class CertificateController {
                 // Calculate expiryDate from certificate
                 const expiryDate = certificate.certificate ? getCertificateExpiryDate(certificate.certificate) : null;
 
-                if (certificate.autoRenewal && certificate.renewalSchedule && expiryDate) {
+                if (certificate.enabled !== false && certificate.autoRenewal && certificate.renewalSchedule && expiryDate) {
                     const renewalDate = this.calculateRenewalDate(expiryDate, certificate.renewalSchedule);
                     await this.schedulerService.scheduleRenewal(certificateId, renewalDate);
                     this.logger.info(`Scheduled renewal for certificate ${certificateId} at ${renewalDate.toISOString()}`);

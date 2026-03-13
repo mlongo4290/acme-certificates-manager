@@ -82,9 +82,6 @@ export const getActivityLogs = async (req: Request, res: Response) => {
     try {
         const page = parseInt(req.query.page as string) || 0;
         const limit = parseInt(req.query.limit as string) || 0;
-        const sortField = (req.query.sortField as string) || 'name';
-        const sortOrder = parseInt(req.query.sortOrder as string) || 1;
-
         // Build filter query - exactly like activity-log
         const filterQuery: any = {};
 
@@ -126,13 +123,9 @@ export const getActivityLogs = async (req: Request, res: Response) => {
         // Get total count
         const totalRecords = await ActivityLog.countDocuments(filterQuery);
 
-        // Build sort object
-        const sortObj: any = {};
-        sortObj[sortField] = sortOrder;
-
-        // Get paginated data
+        // Get paginated data - always sorted by timestamp descending (most recent first)
         const logs = await ActivityLog.find(filterQuery)
-            .sort(sortObj)
+            .sort({ timestamp: -1 })
             .skip(page * limit)
             .limit(limit).populate('userId', 'username email')
             .lean();

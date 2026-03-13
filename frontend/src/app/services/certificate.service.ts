@@ -34,6 +34,7 @@ export interface Certificate {
     lastRenewalAttempt?: Date;
     lastRenewalStatus?: 'success' | 'failed';
     modified?: boolean; // True if certificate configuration was modified after issuance
+    enabled?: boolean; // False to disable renewal scheduling without changing configuration
     nextRenewalDate?: Date; // Calculated field from Agenda
     createdAt?: Date;
     updatedAt?: Date;
@@ -138,5 +139,9 @@ export class CertificateService {
 
     getCertificateLogs(id: string): Observable<any[]> {
         return this.http.get<any[]>(`${this.apiUrl}/${id}/logs`);
+    }
+
+    getRenewalConfig(): Observable<{ blackoutWindows: { start: number; end: number }[] }> {
+        return this.http.get<{ blackoutWindows: { start: number; end: number }[] }>(`${this.apiUrl}/renewal-config`);
     }
 }

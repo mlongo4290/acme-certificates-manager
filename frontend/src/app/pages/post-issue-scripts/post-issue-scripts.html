@@ -47,6 +47,8 @@
                     <p-button icon="pi pi-play" (onClick)="runInit(script)" [text]="true" severity="success"
                         size="small" [pTooltip]="'scripts.runInit' | translate" />
                     }
+                    <p-button icon="pi pi-copy" (onClick)="cloneScript(script)" [text]="true" severity="secondary"
+                        size="small" [pTooltip]="'common.clone' | translate" />
                     <p-button icon="pi pi-pencil" (onClick)="editScript(script)" [text]="true" severity="secondary"
                         size="small" [pTooltip]="'scripts.edit' | translate" />
                     <p-button icon="pi pi-trash" (onClick)="deleteScript(script)" [text]="true" severity="danger"
