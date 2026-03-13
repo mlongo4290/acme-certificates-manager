@@ -25,9 +25,12 @@ import authProviderRoutes from './routes/authProviderRoutes';
 import authRoutes from './routes/authRoutes';
 import { createCertificateRouter } from './routes/certificate.routes';
 import { createDnsProviderRouter } from './routes/dnsProvider.routes';
+import notificationLogRoutes from './routes/notificationLog.routes';
 import postIssueScriptRoutes from './routes/postIssueScript.routes';
 import sshKeyRoutes from './routes/sshKey.routes';
 import userRoutes from './routes/userRoutes';
+import webhookRoutes from './routes/webhook.routes';
+import configExportRoutes from './routes/configExport.routes';
 import { createV1Router } from './routes/v1Router';
 import { AcmeService } from './services/acme.service';
 import { AgendaService } from './services/agenda.service';
@@ -99,6 +102,15 @@ app.use('/api/post-issue-scripts', postIssueScriptRoutes);
 
 // SSH key management
 app.use('/api/ssh-keys', sshKeyRoutes);
+
+// Notification logs
+app.use('/api/notification-logs', notificationLogRoutes);
+
+// Webhooks
+app.use('/api/webhooks', webhookRoutes);
+
+// Config export/import
+app.use('/api/config', configExportRoutes);
 
 // API v1 - REST API with Swagger documentation
 app.use('/api/v1', createV1Router(certificateController, dnsProviderController));

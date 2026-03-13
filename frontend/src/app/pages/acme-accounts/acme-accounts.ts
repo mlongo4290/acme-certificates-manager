@@ -9,6 +9,7 @@ import { DialogModule } from 'primeng/dialog';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
+import { CheckboxModule } from 'primeng/checkbox';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
@@ -38,7 +39,8 @@ import { AcmeCaService } from '../../services/acme-ca.service';
         ToastModule,
         IconFieldModule,
         InputIconModule,
-        MultiSelectModule
+        MultiSelectModule,
+        CheckboxModule
     ],
     templateUrl: './acme-accounts.html'
 })
@@ -62,7 +64,8 @@ export class AcmeAccountsComponent implements OnInit {
         email: '',
         caId: null,
         eabKeyId: '',
-        eabHmacKey: ''
+        eabHmacKey: '',
+        supportsSAN: true
     };
 
     @ViewChild('dt') table: any;
@@ -176,7 +179,8 @@ export class AcmeAccountsComponent implements OnInit {
             email: '',
             caId: null,
             eabKeyId: '',
-            eabHmacKey: ''
+            eabHmacKey: '',
+            supportsSAN: true
         };
         this.displayDialog = true;
     }
@@ -189,7 +193,8 @@ export class AcmeAccountsComponent implements OnInit {
             email: account.email,
             caId: typeof account.caId === 'object' ? account.caId._id : account.caId,
             eabKeyId: account.eabKeyId || '',
-            eabHmacKey: account.eabHmacKey || ''
+            eabHmacKey: account.eabHmacKey || '',
+            supportsSAN: account.supportsSAN !== false
         };
         this.displayDialog = true;
     }
@@ -210,7 +215,8 @@ export class AcmeAccountsComponent implements OnInit {
             email: this.accountForm.email,
             caId: this.accountForm.caId,
             eabKeyId: this.accountForm.eabKeyId || undefined,
-            eabHmacKey: this.accountForm.eabHmacKey || undefined
+            eabHmacKey: this.accountForm.eabHmacKey || undefined,
+            supportsSAN: this.accountForm.supportsSAN
         };
 
         if (this.isNewAccount) {
@@ -314,6 +320,75 @@ export class AcmeAccountsComponent implements OnInit {
                     detail: error.error?.message || error.error?.error || this.translateService.instant('acmeAccounts.errors.registrationFailed')
                 });
                 this.saving = false;
+            }
+        });
+    }
+
+    deactivateAccount(account: AcmeAccount) {
+        this.confirmationService.confirm({
+            message: this.translateService.instant('acmeAccounts.confirmDeactivate', { name: account.name }),
+            header: this.translateService.instant('common.confirm'),
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: this.translateService.instant('yes'),
+            rejectLabel: this.translateService.instant('no'),
+            acceptButtonProps: { severity: 'danger' },
+            accept: () => {
+                this.saving = true;
+                this.acmeAccountService.deactivateAccount(account._id!).subscribe({
+                    next: (result) => {
+                        const detail = result.caDeactivated
+                            ? this.translateService.instant('acmeAccounts.success.deactivated')
+                            : this.translateService.instant('acmeAccounts.success.deactivatedLocalOnly', { reason: result.caMessage });
+                        this.messageService.add({
+                            severity: result.caDeactivated ? 'success' : 'warn',
+                            summary: this.translateService.instant('common.success'),
+                            detail,
+                            life: 6000
+                        });
+                        this.reloadTableData();
+                        this.saving = false;
+                    },
+                    error: (error) => {
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: this.translateService.instant('common.error'),
+                            detail: error.error?.message || this.translateService.instant('acmeAccounts.errors.deactivateFailed')
+                        });
+                        this.saving = false;
+                    }
+                });
+            }
+        });
+    }
+
+    reregisterAccount(account: AcmeAccount) {
+        this.confirmationService.confirm({
+            message: this.translateService.instant('acmeAccounts.confirmReregister', { name: account.name }),
+            header: this.translateService.instant('common.confirm'),
+            icon: 'pi pi-refresh',
+            acceptLabel: this.translateService.instant('yes'),
+            rejectLabel: this.translateService.instant('no'),
+            accept: () => {
+                this.saving = true;
+                this.acmeAccountService.reregisterWithCA(account._id!).subscribe({
+                    next: (result) => {
+                        this.messageService.add({
+                            severity: result.success ? 'success' : 'warn',
+                            summary: this.translateService.instant('common.success'),
+                            detail: result.message
+                        });
+                        this.reloadTableData();
+                        this.saving = false;
+                    },
+                    error: (error) => {
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: this.translateService.instant('common.error'),
+                            detail: error.error?.message || this.translateService.instant('acmeAccounts.errors.reregisterFailed')
+                        });
+                        this.saving = false;
+                    }
+                });
             }
         });
     }

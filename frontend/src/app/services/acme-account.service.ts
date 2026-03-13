@@ -16,6 +16,7 @@ export interface AcmeAccount {
     eabHmacKey?: string;
     accountUrl?: string;
     registeredAt?: Date;
+    supportsSAN?: boolean;
     createdAt?: Date;
     updatedAt?: Date;
 }
@@ -66,5 +67,13 @@ export class AcmeAccountService {
 
     registerWithCA(id: string): Observable<RegisterAccountResponse> {
         return this.http.post<RegisterAccountResponse>(`${this.apiUrl}/${id}/register`, {});
+    }
+
+    reregisterWithCA(id: string): Observable<RegisterAccountResponse> {
+        return this.http.post<RegisterAccountResponse>(`${this.apiUrl}/${id}/reregister`, {});
+    }
+
+    deactivateAccount(id: string): Observable<{ message: string; caDeactivated: boolean; caMessage: string }> {
+        return this.http.post<{ message: string; caDeactivated: boolean; caMessage: string }>(`${this.apiUrl}/${id}/deactivate`, {});
     }
 }

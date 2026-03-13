@@ -134,11 +134,16 @@ export class AcmeService {
                 contact: [`mailto:${email}`]
             };
 
-            // Add EAB if provided (required for some CAs like ZeroSSL)
+            // Add EAB if provided (required for some CAs like ZeroSSL, Actalis)
             if (eabKeyId && eabHmacKey) {
+                // Normalize to base64url (library rejects standard base64 with +/=//)
+                const hmacKeyBase64Url = eabHmacKey
+                    .replace(/\+/g, '-')
+                    .replace(/\//g, '_')
+                    .replace(/=/g, '');
                 accountPayload.externalAccountBinding = {
                     kid: eabKeyId,
-                    hmacKey: eabHmacKey
+                    challenge: hmacKeyBase64Url
                 };
             }
 
@@ -162,6 +167,38 @@ export class AcmeService {
                 success: false,
                 message: `Failed to register account: ${error.message}`
             };
+        }
+    }
+
+    /**
+     * Deactivate an ACME account at the CA
+     */
+    async deactivateAccount(
+        directoryUrl: string,
+        accountKeyJwk: any
+    ): Promise<{ success: boolean; message: string }> {
+        try {
+            const alg = accountKeyJwk.kty === 'EC'
+                ? { name: 'ECDSA', namedCurve: accountKeyJwk.crv || 'P-256' }
+                : { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' };
+
+            const privateKey = await webcrypto.subtle.importKey('jwk', accountKeyJwk, alg, true, ['sign']);
+            const pubJwk = { ...accountKeyJwk };
+            delete pubJwk.d; delete pubJwk.p; delete pubJwk.q; delete pubJwk.dp; delete pubJwk.dq; delete pubJwk.qi;
+            delete pubJwk.key_ops;
+            const publicKey = await webcrypto.subtle.importKey('jwk', pubJwk, alg, true, ['verify']);
+
+            const client = await acme.ApiClient.create(
+                { privateKey, publicKey },
+                directoryUrl,
+                { crypto: webcrypto }
+            );
+
+            await client.deactivateAccount();
+
+            return { success: true, message: 'Account deactivated at CA successfully' };
+        } catch (error: any) {
+            return { success: false, message: error.message };
         }
     }
 

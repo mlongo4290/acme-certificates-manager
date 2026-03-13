@@ -123,6 +123,7 @@ export class CertificatesComponent implements OnInit {
     certificateAuthorities: any[] = [];
     acmeAccounts: any[] = [];
     filteredAccounts: any[] = [];
+    selectedAccountSupportsSAN = true;
     postIssueScripts: any[] = [];
     sshKeys: any[] = [];
     selectedScript: any = null;
@@ -1017,7 +1018,7 @@ export class CertificatesComponent implements OnInit {
                 return accountCaId === this.certificateForm.certificateAuthority;
             })
             .map(acc => ({
-                label: acc.email,
+                label: acc.name,
                 value: acc._id
             }));
 
@@ -1034,6 +1035,16 @@ export class CertificatesComponent implements OnInit {
         // Auto-select if only one account available
         if (this.filteredAccounts.length === 1) {
             this.certificateForm.acmeAccount = this.filteredAccounts[0].value;
+        }
+
+        this.onAcmeAccountChange();
+    }
+
+    onAcmeAccountChange() {
+        const account = this.acmeAccounts.find(a => a._id === this.certificateForm.acmeAccount);
+        this.selectedAccountSupportsSAN = account ? account.supportsSAN !== false : true;
+        if (!this.selectedAccountSupportsSAN) {
+            this.certificateForm.additionalDomains = [];
         }
     }
 

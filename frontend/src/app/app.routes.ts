@@ -16,6 +16,8 @@ import { PostIssueScriptsComponent } from './pages/post-issue-scripts/post-issue
 import { ProfileComponent } from './pages/profile/profile';
 import { RenewalCalendarComponent } from './pages/renewal-calendar/renewal-calendar';
 import { SshKeysComponent } from './pages/ssh-keys/ssh-keys';
+import { WebhooksComponent } from './pages/webhooks/webhooks';
+import { ConfigExportComponent } from './pages/config-export/config-export';
 
 export const appRoutes: Routes = [
     {
@@ -33,8 +35,10 @@ export const appRoutes: Routes = [
             { path: 'post-issue-scripts', component: PostIssueScriptsComponent, canActivate: [certManagerGuard] },
             { path: 'ssh-keys', component: SshKeysComponent, canActivate: [certManagerGuard] },
             { path: 'renewal-calendar', component: RenewalCalendarComponent, canActivate: [certManagerGuard] },
+            { path: 'webhooks', component: WebhooksComponent, canActivate: [certManagerGuard] },
             { path: 'admin/auth-providers', component: AuthProvidersComponent, canActivate: [adminGuard] },
             { path: 'admin/users', component: UsersComponent, canActivate: [adminGuard] },
+            { path: 'admin/config-export', component: ConfigExportComponent, canActivate: [adminGuard] },
             { path: 'pages', loadChildren: () => import('./pages/pages.routes') }
         ]
     },

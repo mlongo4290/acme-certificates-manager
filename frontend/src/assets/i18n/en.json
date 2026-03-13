@@ -50,6 +50,7 @@
         "moveUp": "Move up",
         "moveDown": "Move down",
         "clone": "Clone",
+        "edit": "Edit",
         "seconds": "seconds",
         "pleaseWait": "Please wait...",
         "type": "Type"
@@ -59,7 +60,8 @@
         "users": "Users",
         "authProviders": "Auth Providers",
         "security": "Security",
-        "swaggerDocs": "API Documentation"
+        "swaggerDocs": "API Documentation",
+        "configExport": "Export / Import Config"
     },
     "auth": {
         "login": "Login",
@@ -356,6 +358,7 @@
         "certificateAuthority": "Certificate Authority",
         "acmeAccount": "ACME Account",
         "dnsProvider": "DNS Provider",
+        "caAndAccount": "CA / Account",
         "expiryDate": "Expiry Date",
         "lastRenewal": "Last Renewal",
         "notScheduled": "Not scheduled",
@@ -441,6 +444,7 @@
         "hints": {
             "domain": "Primary domain name for the certificate",
             "additionalDomains": "Subject Alternative Names - additional domains covered by this certificate",
+            "sanNotSupported": "The selected account does not support SAN — only single-domain certificates can be issued",
             "certificateAuthority": "ACME certificate authority (e.g., Let's Encrypt, ZeroSSL)",
             "acmeAccount": "Registered ACME account to use for certificate issuance",
             "challengeType": "HTTP-01: web server validation, DNS-01: DNS record validation, TLS-ALPN-01: TLS protocol validation",
@@ -658,18 +662,26 @@
         "registered": "Registered",
         "notRegistered": "Not Registered",
         "register": "Register",
+        "reregister": "Re-register (new key)",
+        "deactivate": "Deactivate at CA",
         "create": "Create New Account",
         "edit": "Edit Account",
         "delete": "Delete Account",
         "confirmDelete": "Are you sure you want to delete the account '{{name}}'?",
+        "confirmReregister": "Generate a new key pair and re-register '{{name}}' with the CA? The existing key will be replaced.",
+        "confirmDeactivate": "Deactivate '{{name}}' at the CA and remove it from the local database? This action cannot be undone.",
         "eabKeyId": "EAB Key ID",
         "eabKeyIdHint": "Key Identifier provided by the CA",
         "eabHmacKey": "EAB HMAC Key",
         "eabHmacKeyHint": "Base64-encoded HMAC key",
+        "supportsSAN": "Supports SAN (Subject Alternative Names)",
         "success": {
             "created": "Account created successfully",
             "updated": "Account updated successfully",
-            "deleted": "Account deleted successfully"
+            "deleted": "Account deleted successfully",
+            "deactivated": "Account deactivated at CA and removed from database",
+            "deactivatedLocalOnly": "Account removed from database (CA deactivation failed: {{reason}})",
+            "reregistered": "Account re-registered successfully with new key"
         },
         "errors": {
             "validation": "Name, email, and CA are required",
@@ -677,7 +689,9 @@
             "updateFailed": "Failed to update account",
             "deleteFailed": "Failed to delete account",
             "loadFailed": "Failed to load account details",
-            "registrationFailed": "Failed to register account."
+            "registrationFailed": "Failed to register account.",
+            "reregisterFailed": "Failed to re-register account",
+            "deactivateFailed": "Failed to deactivate account"
         }
     },
     "scripts": {
@@ -975,5 +989,100 @@
         "dateFormat": "mm/dd/yy",
         "firstDayOfWeek": 0,
         "weekHeader": "Wk"
+    },
+    "webhooks": {
+        "title": "Webhooks",
+        "description": "Configure HTTP webhooks to receive notifications in external systems",
+        "create": "Create Webhook",
+        "edit": "Edit Webhook",
+        "name": "Name",
+        "url": "URL",
+        "events": "Events",
+        "secret": "Secret",
+        "hasSecret": "HMAC signature enabled",
+        "test": "Test webhook",
+        "logs": "Delivery logs",
+        "logsFor": "Logs for",
+        "noWebhooks": "No webhooks configured",
+        "noLogs": "No delivery logs found",
+        "testing": "Sending test...",
+        "testSuccess": "Webhook test successful",
+        "testFailed": "Webhook test failed",
+        "eventType": "Event",
+        "confirmDelete": "Are you sure you want to delete webhook '{{name}}'?",
+        "eventTypes": {
+            "certificate_renewed_success": "Renewal success",
+            "certificate_renewed_failed": "Renewal failed",
+            "certificate_issued_success": "Issuance success",
+            "certificate_issued_failed": "Issuance failed",
+            "post_script_success": "Script success",
+            "post_script_failed": "Script failed",
+            "test": "Test"
+        },
+        "placeholders": {
+            "name": "e.g., Slack notifications",
+            "url": "https://hooks.example.com/...",
+            "events": "Select events to subscribe to",
+            "secret": "Optional HMAC-SHA256 secret",
+            "secretEdit": "Leave blank to keep existing secret, empty to remove"
+        },
+        "hints": {
+            "secret": "If set, each request includes X-Webhook-Signature: sha256=<hmac> for verification"
+        },
+        "success": {
+            "created": "Webhook created successfully",
+            "updated": "Webhook updated successfully",
+            "deleted": "Webhook deleted successfully"
+        },
+        "errors": {
+            "loadFailed": "Failed to load webhooks",
+            "saveFailed": "Failed to save webhook",
+            "deleteFailed": "Failed to delete webhook",
+            "testFailed": "Failed to test webhook"
+        }
+    },
+    "configExport": {
+        "title": "Export / Import Configuration",
+        "description": "Backup and restore your ACME Certificates Manager configuration",
+        "export": {
+            "title": "Export Configuration",
+            "description": "Download the full configuration as a JSON file. Use this to backup or migrate to another instance.",
+            "includes": "Included",
+            "excludes": "Excluded",
+            "includesList": {
+                "cas": "Certificate Authorities",
+                "dnsProviders": "DNS Providers (with credentials)",
+                "acmeAccounts": "ACME Accounts (without private keys)",
+                "scripts": "Post-Issue Scripts",
+                "webhooks": "Webhooks (without secrets)",
+                "certificates": "Certificate configurations (without cert/key material)"
+            },
+            "excludesList": {
+                "certMaterial": "Certificate and private key material (must be re-issued)",
+                "acmeKeys": "ACME account private keys (must re-register)",
+                "webhookSecrets": "Webhook HMAC secrets",
+                "users": "Users, API tokens and authentication providers"
+            },
+            "sensitiveWarning": "The export file may contain sensitive data (DNS credentials). Store it securely.",
+            "button": "Download Configuration",
+            "success": "Configuration exported successfully",
+            "error": "Failed to export configuration"
+        },
+        "import": {
+            "title": "Import Configuration",
+            "description": "Restore configuration from a previously exported JSON file. Existing entities with the same name will be skipped.",
+            "selectFile": "Configuration File",
+            "chooseFile": "Choose file...",
+            "skipInfo": "Existing entries (matched by name/domain) will be skipped — no data will be overwritten.",
+            "button": "Import Configuration",
+            "result": "Import Results",
+            "entity": "Entity",
+            "created": "Created",
+            "skipped": "Skipped",
+            "errors": "Errors",
+            "invalidFile": "Invalid JSON file",
+            "success": "Import completed: {{count}} entities created",
+            "error": "Failed to import configuration"
+        }
     }
 }

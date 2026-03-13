@@ -70,6 +70,11 @@ export class AppMenu implements OnInit {
                         label: this.translate.instant('renewalCalendar.title'),
                         routerLink: ['/renewal-calendar'],
                         icon: 'pi pi-fw pi-calendar'
+                    },
+                    {
+                        label: this.translate.instant('webhooks.title'),
+                        routerLink: ['/webhooks'],
+                        icon: 'pi pi-fw pi-bolt'
                     }
                 ]
             }
@@ -88,6 +93,11 @@ export class AppMenu implements OnInit {
                 label: this.translate.instant('menu.users'),
                 icon: 'pi pi-fw pi-users',
                 routerLink: ['/admin/users']
+            });
+            securityItems.push({
+                label: this.translate.instant('menu.configExport'),
+                icon: 'pi pi-fw pi-file-export',
+                routerLink: ['/admin/config-export']
             });
         }
 

@@ -54,7 +54,7 @@
                         </ng-template>
                     </p-columnFilter>
                 </th>
-                <th [style]="{ 'min-width': '150px' }">{{ 'certificates.dnsProvider' | translate }}</th>
+                <th [style]="{ 'min-width': '180px' }">{{ 'certificates.caAndAccount' | translate }}</th>
                 <th pSortableColumn="expiryDate" [style]="{ 'min-width': '180px' }">
                     {{ 'certificates.expiryDate' | translate }}
                     <p-sortIcon field="expiryDate" />
@@ -90,10 +90,30 @@
                         [severity]="getStatusSeverity(cert.status)" />
                 </td>
                 <td>
-                    <p-tag [value]="getChallengeTypeLabel(cert.challengeType)"
-                        [severity]="cert.challengeType === 'dns-01' ? 'info' : 'secondary'" />
+                    <div class="flex flex-col gap-1">
+                        <p-tag [value]="getChallengeTypeLabel(cert.challengeType)"
+                            [severity]="cert.challengeType === 'dns-01' ? 'info' : 'secondary'" />
+                        @if (cert.challengeType === 'dns-01' && cert.dnsProvider) {
+                        <span class="text-xs text-surface-500 dark:text-surface-400">
+                            <i class="pi pi-cloud mr-1"></i>{{ getDnsProviderLabel(cert.dnsProvider) }}
+                        </span>
+                        }
+                    </div>
                 </td>
-                <td>{{ getDnsProviderLabel(cert.dnsProvider) }}</td>
+                <td>
+                    <div class="flex flex-col gap-1">
+                        @if (cert.certificateAuthority?.name) {
+                        <span class="text-sm font-medium">
+                            <i class="pi pi-globe mr-1 text-surface-400"></i>{{ cert.certificateAuthority.name }}
+                        </span>
+                        }
+                        @if (cert.acmeAccount?.name) {
+                        <span class="text-xs text-surface-500 dark:text-surface-400">
+                            <i class="pi pi-user mr-1"></i>{{ cert.acmeAccount.name }}
+                        </span>
+                        }
+                    </div>
+                </td>
                 <td>
                     @if (cert.expiryDate) {
                     <div class="flex flex-col gap-2">
@@ -297,19 +317,22 @@
                                 </div>
                             </div>
 
-                            <div class="flex flex-col gap-2">
+                            <div class="flex flex-col gap-2" [class.opacity-50]="!selectedAccountSupportsSAN">
                                 <label for="additionalDomains" class="font-semibold">
                                     {{ 'certificates.additionalDomains' | translate }}
                                     <span class="text-gray-500 text-sm font-normal">({{ 'optional' | translate
                                         }})</span>
                                 </label>
+                                @if (!selectedAccountSupportsSAN) {
+                                <small class="text-orange-500">{{ 'certificates.hints.sanNotSupported' | translate }}</small>
+                                }
                                 <div class="flex gap-2">
                                     <input id="newAdditionalDomain" type="text" pInputText
                                         [(ngModel)]="newAdditionalDomain"
                                         [placeholder]="'certificates.placeholders.additionalDomain' | translate"
-                                        class="flex-1" />
+                                        class="flex-1" [disabled]="!selectedAccountSupportsSAN" />
                                     <p-button icon="pi pi-plus" (click)="addAdditionalDomain()"
-                                        [disabled]="!newAdditionalDomain" severity="secondary" />
+                                        [disabled]="!newAdditionalDomain || !selectedAccountSupportsSAN" severity="secondary" />
                                 </div>
                                 @if (certificateForm.additionalDomains?.length > 0) {
                                 <div class="flex flex-wrap gap-2 mt-2">
@@ -350,7 +373,7 @@
                                     <p-select id="acmeAccount" [(ngModel)]="certificateForm.acmeAccount"
                                         [options]="filteredAccounts" optionLabel="label" optionValue="value"
                                         [placeholder]="'certificates.placeholders.selectAcmeAccount' | translate"
-                                        class="w-full" />
+                                        class="w-full" (ngModelChange)="onAcmeAccountChange()" />
                                     <small class="text-gray-500">{{ 'certificates.hints.acmeAccount' | translate
                                         }}</small>
                                 </div>

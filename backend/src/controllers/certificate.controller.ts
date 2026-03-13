@@ -162,6 +162,8 @@ export class CertificateController {
 
         // Get paginated data
         const certificates = await Certificate.find(filterQuery)
+            .populate('certificateAuthority', 'name')
+            .populate('acmeAccount', 'name email')
             .sort(sortObj)
             .skip(page * limit)
             .limit(limit);
@@ -382,18 +384,25 @@ export class CertificateController {
             }));
         }
 
-        // Check if domains are being modified on an issued certificate
-        const domainsChanged =
+        // Check if domains, CA or ACME account are being modified on an issued certificate
+        const currentCaId = (certificate.certificateAuthority as any)?._id?.toString()
+            ?? (certificate.certificateAuthority as any)?.toString();
+        const currentAccountId = (certificate.acmeAccount as any)?._id?.toString()
+            ?? (certificate.acmeAccount as any)?.toString();
+
+        const issuanceChanged =
             certificate.status === 'valid' && (
                 req.body.domain !== certificate.domain ||
-                JSON.stringify(req.body.additionalDomains?.sort()) !== JSON.stringify(certificate.additionalDomains?.sort())
+                JSON.stringify(req.body.additionalDomains?.sort()) !== JSON.stringify(certificate.additionalDomains?.sort()) ||
+                (req.body.certificateAuthority && req.body.certificateAuthority.toString() !== currentCaId) ||
+                (req.body.acmeAccount && req.body.acmeAccount.toString() !== currentAccountId)
             );
 
         // Update certificate
         Object.assign(certificate, req.body);
 
-        // Set modified flag if domains changed on valid certificate
-        if (domainsChanged) {
+        // Set modified flag if issuance-relevant fields changed on valid certificate
+        if (issuanceChanged) {
             certificate.modified = true;
         }
 

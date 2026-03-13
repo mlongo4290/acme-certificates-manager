@@ -65,12 +65,24 @@
                             [loading]="saving">
                         </p-button>
                         }
+                        @if (account.registeredAt) {
+                        <p-button icon="pi pi-refresh" [rounded]="true" [text]="true" severity="warn"
+                            (onClick)="reregisterAccount(account)"
+                            pTooltip="{{ 'acmeAccounts.reregister' | translate }}" [loading]="saving">
+                        </p-button>
+                        <p-button icon="pi pi-ban" [rounded]="true" [text]="true" severity="danger"
+                            (onClick)="deactivateAccount(account)"
+                            pTooltip="{{ 'acmeAccounts.deactivate' | translate }}" [loading]="saving">
+                        </p-button>
+                        }
                         <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" severity="info"
                             (onClick)="showEditDialog(account)" pTooltip="{{ 'acmeAccounts.edit' | translate }}">
                         </p-button>
+                        @if (!account.registeredAt) {
                         <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger"
                             (onClick)="deleteAccount(account)" pTooltip="{{ 'acmeAccounts.delete' | translate }}">
                         </p-button>
+                        }
                     </div>
                 </td>
             </tr>
@@ -117,6 +129,11 @@
             <textarea pTextarea id="eabHmacKey" [(ngModel)]="accountForm.eabHmacKey" class="w-full" rows="3"></textarea>
             <small class="text-surface-500 dark:text-surface-400">{{ 'acmeAccounts.eabHmacKeyHint' | translate
                 }}</small>
+        </div>
+
+        <div class="flex align-items-center gap-2">
+            <p-checkbox [(ngModel)]="accountForm.supportsSAN" [binary]="true" inputId="supportsSAN" />
+            <label for="supportsSAN">{{ 'acmeAccounts.supportsSAN' | translate }}</label>
         </div>
     </div>
 

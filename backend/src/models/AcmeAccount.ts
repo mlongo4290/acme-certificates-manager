@@ -35,6 +35,10 @@ const AcmeAccountSchema = new Schema(
         },
         registeredAt: {
             type: Date
+        },
+        supportsSAN: {
+            type: Boolean,
+            default: true
         }
     },
     {
@@ -42,7 +46,8 @@ const AcmeAccountSchema = new Schema(
     }
 );
 
-// Index for faster queries
-AcmeAccountSchema.index({ caId: 1, email: 1 }, { unique: true });
+// Index for faster queries (name must be unique per CA, but same email can have multiple accounts)
+AcmeAccountSchema.index({ caId: 1, name: 1 }, { unique: true });
+AcmeAccountSchema.index({ caId: 1, email: 1 });
 
 export const AcmeAccount = model('AcmeAccount', AcmeAccountSchema);

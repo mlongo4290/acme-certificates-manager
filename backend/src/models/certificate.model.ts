@@ -37,7 +37,7 @@ const certificateSchema = new Schema({
     },
     certificateAuthority: {
         type: Schema.Types.ObjectId,
-        ref: 'CertificateAuthority',
+        ref: 'AcmeCa',
         required: true,
     },
     acmeAccount: {
@@ -47,7 +47,7 @@ const certificateSchema = new Schema({
     },
     dnsProvider: {
         type: Schema.Types.ObjectId,
-        ref: 'DNSProvider',
+        ref: 'DnsProvider',
         required: function (this: any) {
             return this.challengeType === 'dns-01';
         },
@@ -112,6 +112,11 @@ const certificateSchema = new Schema({
     enabled: {
         type: Boolean,
         default: true,
+    },
+    // Retry counter: incremented on each failed renewal attempt, reset to 0 on success
+    renewalRetryCount: {
+        type: Number,
+        default: 0,
     },
 }, {
     timestamps: true,

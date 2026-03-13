@@ -50,6 +50,7 @@
         "moveUp": "Sposta su",
         "moveDown": "Sposta giù",
         "clone": "Clona",
+        "edit": "Modifica",
         "seconds": "secondi",
         "pleaseWait": "Attendere prego...",
         "type": "Tipo"
@@ -59,7 +60,8 @@
         "users": "Utenti",
         "authProviders": "Provider autenticazione",
         "security": "Sicurezza",
-        "swaggerDocs": "Documentazione API"
+        "swaggerDocs": "Documentazione API",
+        "configExport": "Esporta / Importa Config"
     },
     "auth": {
         "login": "Accedi",
@@ -356,6 +358,7 @@
         "certificateAuthority": "Autorità di certificazione",
         "acmeAccount": "Account ACME",
         "dnsProvider": "Provider DNS",
+        "caAndAccount": "CA / Account",
         "expiryDate": "Data scadenza",
         "lastRenewal": "Ultimo rinnovo",
         "notScheduled": "Non programmato",
@@ -441,6 +444,7 @@
         "hints": {
             "domain": "Nome dominio principale per il certificato",
             "additionalDomains": "Subject Alternative Names - domini aggiuntivi coperti da questo certificato",
+            "sanNotSupported": "L'account selezionato non supporta SAN — è possibile emettere solo certificati a dominio singolo",
             "certificateAuthority": "Autorità di certificazione ACME (es. Let's Encrypt, ZeroSSL)",
             "acmeAccount": "Account ACME registrato da utilizzare per l'emissione del certificato",
             "challengeType": "HTTP-01: validazione web server, DNS-01: validazione record DNS, TLS-ALPN-01: validazione protocollo TLS",
@@ -658,18 +662,26 @@
         "registered": "Registrato",
         "notRegistered": "Non registrato",
         "register": "Registra",
+        "reregister": "Ri-registra (nuova chiave)",
+        "deactivate": "Disattiva presso la CA",
         "create": "Crea nuovo account",
         "edit": "Modifica account",
         "delete": "Elimina account",
         "confirmDelete": "Sei sicuro di voler eliminare l'account '{{name}}'?",
+        "confirmReregister": "Generare un nuovo key pair e ri-registrare '{{name}}' presso la CA? La chiave esistente verrà sostituita.",
+        "confirmDeactivate": "Disattivare '{{name}}' presso la CA e rimuoverlo dal database locale? Questa operazione non è reversibile.",
         "eabKeyId": "EAB Key ID",
         "eabKeyIdHint": "ID chiave EAB fornito dalla CA",
         "eabHmacKey": "EAB HMAC Key",
         "eabHmacKeyHint": "Chiave HMAC codificata in Base64",
+        "supportsSAN": "Supporta SAN (Subject Alternative Names)",
         "success": {
             "created": "Account creato con successo",
             "updated": "Account aggiornato con successo",
-            "deleted": "Account eliminato con successo"
+            "deleted": "Account eliminato con successo",
+            "deactivated": "Account disattivato presso la CA e rimosso dal database",
+            "deactivatedLocalOnly": "Account rimosso dal database (disattivazione CA fallita: {{reason}})",
+            "reregistered": "Account ri-registrato con successo con nuova chiave"
         },
         "errors": {
             "validation": "Nome, email e CA sono obbligatori",
@@ -677,7 +689,9 @@
             "updateFailed": "Aggiornamento account fallito",
             "deleteFailed": "Eliminazione account fallita",
             "loadFailed": "Caricamento account fallito",
-            "registrationFailed": "Registrazione account fallita."
+            "registrationFailed": "Registrazione account fallita.",
+            "reregisterFailed": "Ri-registrazione account fallita",
+            "deactivateFailed": "Disattivazione account fallita"
         }
     },
     "scripts": {
@@ -975,5 +989,100 @@
         "dateFormat": "dd/mm/yy",
         "firstDayOfWeek": 1,
         "weekHeader": "Sett"
+    },
+    "webhooks": {
+        "title": "Webhook",
+        "description": "Configura webhook HTTP per ricevere notifiche su sistemi esterni",
+        "create": "Crea Webhook",
+        "edit": "Modifica Webhook",
+        "name": "Nome",
+        "url": "URL",
+        "events": "Eventi",
+        "secret": "Secret",
+        "hasSecret": "Firma HMAC abilitata",
+        "test": "Testa webhook",
+        "logs": "Log di consegna",
+        "logsFor": "Log per",
+        "noWebhooks": "Nessun webhook configurato",
+        "noLogs": "Nessun log di consegna trovato",
+        "testing": "Invio test in corso...",
+        "testSuccess": "Test webhook riuscito",
+        "testFailed": "Test webhook fallito",
+        "eventType": "Evento",
+        "confirmDelete": "Sei sicuro di voler eliminare il webhook '{{name}}'?",
+        "eventTypes": {
+            "certificate_renewed_success": "Rinnovo riuscito",
+            "certificate_renewed_failed": "Rinnovo fallito",
+            "certificate_issued_success": "Emissione riuscita",
+            "certificate_issued_failed": "Emissione fallita",
+            "post_script_success": "Script riuscito",
+            "post_script_failed": "Script fallito",
+            "test": "Test"
+        },
+        "placeholders": {
+            "name": "es. Notifiche Slack",
+            "url": "https://hooks.example.com/...",
+            "events": "Seleziona gli eventi a cui iscriversi",
+            "secret": "Secret HMAC-SHA256 opzionale",
+            "secretEdit": "Lascia vuoto per mantenere il secret esistente, vuoto per rimuoverlo"
+        },
+        "hints": {
+            "secret": "Se impostato, ogni richiesta include X-Webhook-Signature: sha256=<hmac> per la verifica"
+        },
+        "success": {
+            "created": "Webhook creato con successo",
+            "updated": "Webhook aggiornato con successo",
+            "deleted": "Webhook eliminato con successo"
+        },
+        "errors": {
+            "loadFailed": "Impossibile caricare i webhook",
+            "saveFailed": "Impossibile salvare il webhook",
+            "deleteFailed": "Impossibile eliminare il webhook",
+            "testFailed": "Impossibile testare il webhook"
+        }
+    },
+    "configExport": {
+        "title": "Esporta / Importa Configurazione",
+        "description": "Backup e ripristino della configurazione di ACME Certificates Manager",
+        "export": {
+            "title": "Esporta Configurazione",
+            "description": "Scarica la configurazione completa come file JSON. Usa questa funzione per backup o migrazione.",
+            "includes": "Incluso",
+            "excludes": "Escluso",
+            "includesList": {
+                "cas": "Autorità di certificazione",
+                "dnsProviders": "Provider DNS (con credenziali)",
+                "acmeAccounts": "Account ACME (senza chiavi private)",
+                "scripts": "Script post-emissione",
+                "webhooks": "Webhook (senza segreti)",
+                "certificates": "Configurazioni certificati (senza materiale cert/chiave)"
+            },
+            "excludesList": {
+                "certMaterial": "Certificati e chiavi private (devono essere riemessi)",
+                "acmeKeys": "Chiavi private account ACME (richiedono ri-registrazione)",
+                "webhookSecrets": "Segreti HMAC webhook",
+                "users": "Utenti, token API e provider di autenticazione"
+            },
+            "sensitiveWarning": "Il file di esportazione può contenere dati sensibili (credenziali DNS). Conservarlo in modo sicuro.",
+            "button": "Scarica Configurazione",
+            "success": "Configurazione esportata con successo",
+            "error": "Esportazione configurazione fallita"
+        },
+        "import": {
+            "title": "Importa Configurazione",
+            "description": "Ripristina la configurazione da un file JSON esportato in precedenza. Le entità esistenti con lo stesso nome verranno saltate.",
+            "selectFile": "File di configurazione",
+            "chooseFile": "Scegli file...",
+            "skipInfo": "Le voci esistenti (verificate per nome/dominio) verranno saltate — nessun dato verrà sovrascritto.",
+            "button": "Importa Configurazione",
+            "result": "Risultati Importazione",
+            "entity": "Entità",
+            "created": "Creati",
+            "skipped": "Saltati",
+            "errors": "Errori",
+            "invalidFile": "File JSON non valido",
+            "success": "Importazione completata: {{count}} entità create",
+            "error": "Importazione configurazione fallita"
+        }
     }
 }

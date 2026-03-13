@@ -3,7 +3,7 @@ import { AcmeAccount } from '../models/AcmeAccount';
 import { AcmeCa } from '../models/AcmeCa';
 import { AcmeService } from '../services/acme.service';
 import { ActivityLogService } from '../services/activityLog.service';
-import { encrypt } from '../utils/encryption';
+import { decrypt, encrypt } from '../utils/encryption';
 
 const acmeService = new AcmeService();
 
@@ -133,10 +133,89 @@ export const acmeAccountController = {
         }
     },
 
+    // Deactivate account at CA, then delete from DB
+    async deactivateAccount(req: Request, res: Response) {
+        try {
+            const account = await AcmeAccount.findById(req.params.id)
+                .select('+accountKeyJwk')
+                .populate('caId');
+            if (!account) {
+                return res.status(404).json({ message: 'Account not found' });
+            }
+
+            const ca: any = account.caId;
+            let caDeactivated = false;
+            let caMessage = '';
+
+            if (account.accountKeyJwk && ca?.server) {
+                try {
+                    const decryptedKeyJson = decrypt(account.accountKeyJwk);
+                    const accountKeyJwk = JSON.parse(decryptedKeyJson);
+                    const result = await acmeService.deactivateAccount(ca.server, accountKeyJwk);
+                    caDeactivated = result.success;
+                    caMessage = result.message;
+                } catch (err: any) {
+                    caMessage = `Could not deactivate at CA: ${err.message}`;
+                }
+            }
+
+            await AcmeAccount.findByIdAndDelete(req.params.id);
+            await ActivityLogService.logAcmeAccountDeleted(account.email, req.params.id, req);
+
+            res.json({
+                message: 'Account deleted from local database',
+                caDeactivated,
+                caMessage
+            });
+        } catch (error: any) {
+            res.status(500).json({ message: 'Error deactivating account', error: error.message });
+        }
+    },
+
+    // Re-register account with CA (new key pair, same EAB)
+    async reregisterWithCA(req: Request, res: Response) {
+        try {
+            const account = await AcmeAccount.findById(req.params.id).populate('caId');
+            if (!account) {
+                return res.status(404).json({ message: 'Account not found' });
+            }
+
+            const ca: any = account.caId;
+            if (!ca) {
+                return res.status(404).json({ message: 'CA not found' });
+            }
+
+            const result = await acmeService.registerAccount(
+                ca.server,
+                account.email,
+                account.eabKeyId || undefined,
+                account.eabHmacKey || undefined
+            );
+
+            if (result.success) {
+                account.registeredAt = new Date();
+                if (result.accountUrl) account.accountUrl = result.accountUrl;
+                if (result.accountKeyJwk) {
+                    account.accountKeyJwk = encrypt(JSON.stringify(result.accountKeyJwk));
+                }
+                await account.save();
+                await ActivityLogService.logAcmeAccountRegistered(account.email, account.id, req);
+            }
+
+            res.json({
+                success: result.success,
+                message: result.message,
+                account: await AcmeAccount.findById(account._id).populate('caId', 'name server')
+            });
+        } catch (error: any) {
+            res.status(500).json({ success: false, message: 'Error re-registering account', error: error.message });
+        }
+    },
+
     // Create new account
     async createAccount(req: Request, res: Response) {
         try {
-            const { name, email, caId, eabKeyId, eabHmacKey } = req.body;
+            const { name, email, caId, eabKeyId, eabHmacKey, supportsSAN } = req.body;
 
             // Validation
             if (!name || !email || !caId) {
@@ -149,10 +228,10 @@ export const acmeAccountController = {
                 return res.status(404).json({ message: 'CA not found' });
             }
 
-            // Check if account already exists for this CA and email
-            const existingAccount = await AcmeAccount.findOne({ caId, email });
+            // Check if account name already exists for this CA
+            const existingAccount = await AcmeAccount.findOne({ caId, name });
             if (existingAccount) {
-                return res.status(400).json({ message: 'Account with this email already exists for this CA' });
+                return res.status(400).json({ message: 'Account with this name already exists for this CA' });
             }
 
             const account = new AcmeAccount({
@@ -160,7 +239,8 @@ export const acmeAccountController = {
                 email,
                 caId,
                 eabKeyId,
-                eabHmacKey
+                eabHmacKey,
+                supportsSAN: supportsSAN !== false
             });
 
             await account.save();
@@ -178,7 +258,7 @@ export const acmeAccountController = {
     // Update account
     async updateAccount(req: Request, res: Response) {
         try {
-            const { name, email, caId, eabKeyId, eabHmacKey } = req.body;
+            const { name, email, caId, eabKeyId, eabHmacKey, supportsSAN } = req.body;
 
             const account = await AcmeAccount.findById(req.params.id);
             if (!account) {
@@ -198,6 +278,7 @@ export const acmeAccountController = {
             }
             if (eabKeyId !== undefined) account.eabKeyId = eabKeyId;
             if (eabHmacKey !== undefined) account.eabHmacKey = eabHmacKey;
+            if (supportsSAN !== undefined) (account as any).supportsSAN = supportsSAN;
 
             await account.save();
             const populatedAccount = await AcmeAccount.findById(account._id).populate('caId', 'name server');

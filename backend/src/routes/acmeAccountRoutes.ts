@@ -22,4 +22,10 @@ router.delete('/:id', authenticate as any, requireAdminOrCertManager as any, acm
 // Register account with CA
 router.post('/:id/register', authenticate as any, requireAdminOrCertManager as any, acmeAccountController.registerWithCA as any);
 
+// Re-register account with CA (new key pair)
+router.post('/:id/reregister', authenticate as any, requireAdminOrCertManager as any, acmeAccountController.reregisterWithCA as any);
+
+// Deactivate account at CA and delete from DB
+router.post('/:id/deactivate', authenticate as any, requireAdminOrCertManager as any, acmeAccountController.deactivateAccount as any);
+
 export default router;

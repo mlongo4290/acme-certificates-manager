@@ -251,6 +251,9 @@ export class CertificateService {
             // Log successful renewal (automatic renewal from scheduler)
             await ActivityLogService.logCertificateRenewed(certificate.domain, certificateId);
 
+            // Reset retry counter on success
+            await Certificate.updateOne({ _id: certificateId }, { renewalRetryCount: 0 });
+
             // CRITICAL: Re-schedule the next renewal if auto-renewal is still enabled
             if (certificate.autoRenewal && certificate.renewalSchedule && this.schedulerService) {
                 // Fetch updated certificate to get the new expiry date
@@ -278,12 +281,43 @@ export class CertificateService {
             // Log renewal error
             await ActivityLogService.logCertificateError(certificate.domain, certificateId, error.message);
 
-            // Send renewal failure notification
-            await notificationService.sendNotification('certificate_renewed_failed', {
-                certificateId: certificateId,
-                domain: certificate.domain,
-                error: error.message,
-            }).catch(err => this.logger.error(`Failed to send notification: ${err.message}`));
+            // Retry logic: schedule a retry with exponential backoff
+            const maxRetries = parseInt(process.env.RENEWAL_MAX_RETRIES || '3');
+            const baseDelayMinutes = parseInt(process.env.RENEWAL_RETRY_BASE_DELAY_MINUTES || '30');
+            const currentRetryCount = certificate.renewalRetryCount || 0;
+
+            if (currentRetryCount < maxRetries && this.schedulerService) {
+                const delayMinutes = baseDelayMinutes * Math.pow(2, currentRetryCount);
+                const retryDate = new Date(Date.now() + delayMinutes * 60 * 1000);
+
+                await Certificate.updateOne({ _id: certificateId }, { $inc: { renewalRetryCount: 1 } });
+                await this.schedulerService.scheduleRenewal(certificateId, retryDate);
+
+                this.logger.warn(`Renewal failed for ${certificate.domain} (attempt ${currentRetryCount + 1}/${maxRetries}), retrying in ${delayMinutes} minutes`);
+
+                await notificationService.sendNotification('certificate_renewed_failed', {
+                    certificateId: certificateId,
+                    domain: certificate.domain,
+                    error: error.message,
+                    retryCount: currentRetryCount + 1,
+                    maxRetries,
+                    nextRetryIn: delayMinutes,
+                }).catch(err => this.logger.error(`Failed to send notification: ${err.message}`));
+            } else {
+                // Max retries reached or no scheduler: reset counter, no further retries
+                await Certificate.updateOne({ _id: certificateId }, { renewalRetryCount: 0 });
+
+                this.logger.error(`Renewal failed for ${certificate.domain} after ${currentRetryCount} retries, giving up`);
+
+                await notificationService.sendNotification('certificate_renewed_failed', {
+                    certificateId: certificateId,
+                    domain: certificate.domain,
+                    error: error.message,
+                    retryCount: currentRetryCount,
+                    maxRetries,
+                    finalFailure: true,
+                }).catch(err => this.logger.error(`Failed to send notification: ${err.message}`));
+            }
 
             return { success: false, message: error.message };
         }
