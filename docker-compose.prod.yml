@@ -1,9 +1,7 @@
 services:
   frontend:
     container_name: acm-frontend
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/mlongo4290/acme-certificates-manager-frontend:latest
     ports:
       - "80:80"
     depends_on:
@@ -11,9 +9,7 @@ services:
 
   backend:
     container_name: acm-backend
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/mlongo4290/acme-certificates-manager-backend:latest
     expose:
       - "3000"
     environment:
@@ -33,8 +29,6 @@ services:
   mongodb:
     container_name: acm-mongodb
     image: mongo:5.0
-    expose:
-      - "27017"
     volumes:
       - mongodb_data:/data/db
 

@@ -10,14 +10,9 @@ if (process.env.NODE_ENV !== 'production') {
     dotenv.config();
 }
 
-const seedData = async () => {
-    try {
-        const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/acme-certificates-manager';
-        await connect(mongoUri);
-        console.log('Connected to MongoDB');
-
-        // Check if admin user already exists
-        const existingAdmin = await User.findOne({ username: 'admin' });
+export const seedInitialData = async () => {
+    // Check if admin user already exists
+    const existingAdmin = await User.findOne({ username: 'admin' });
 
         if (!existingAdmin) {
             // Create admin user
@@ -238,6 +233,15 @@ const seedData = async () => {
         if (dnsProvidersExisting > 0) {
             console.log(`✓ ${dnsProvidersExisting} DNS Providers already exist`);
         }
+};
+
+const seedData = async () => {
+    try {
+        const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/acme-certificates-manager';
+        await connect(mongoUri);
+        console.log('Connected to MongoDB');
+
+        await seedInitialData();
 
         await disconnect();
         console.log('Disconnected from MongoDB');
@@ -247,4 +251,7 @@ const seedData = async () => {
     }
 };
 
-seedData();
+// Only run directly (not when imported as a module)
+if (require.main === module) {
+    seedData();
+}

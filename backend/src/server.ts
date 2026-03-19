@@ -11,6 +11,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 import { initializePassport } from './config/passport';
+import { seedInitialData } from './seed';
 import { AgendaController } from './controllers/agenda.controller';
 import { CertificateController } from './controllers/certificate.controller';
 import { JobController } from './controllers/job.controller';
@@ -54,6 +55,7 @@ logger.info(`Connecting to MongoDB at: ${mongoUri}`);
 connect(mongoUri)
     .then(async () => {
         logger.info('MongoDB connected successfully');
+        await seedInitialData();
         // Initialize Passport strategies after MongoDB connection
         await initializePassport();
         logger.info('Passport strategies initialized');
