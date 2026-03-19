@@ -56,3 +56,22 @@ ktd-grid-item .p-card-content {
     overflow-y: auto;
     min-height: 0;
 }
+
+/* Stats widget: prevent cards from overflowing the gridster item */
+ktd-grid-item app-stats-widget > div {
+    overflow: hidden;
+}
+
+/* Chart widgets: canvas must fill the p-card-content area */
+ktd-grid-item p-chart,
+ktd-grid-item .p-chart {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    padding: 10px;
+}
+
+ktd-grid-item p-chart canvas {
+    max-width: 100%;
+    max-height: 100%;
+}

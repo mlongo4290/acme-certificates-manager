@@ -1,27 +1,35 @@
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 h-full">
-<p-card class="h-full">
-    <ng-template #subtitle>
-        <span translate>dashboard.summary.total</span>
-    </ng-template>
-    <div class="text-surface-900 dark:text-surface-0 font-medium-center text-xl">{{ certificatesCount }}</div>
-</p-card>
-<p-card class="h-full">
-    <ng-template #subtitle>
-        <span translate>dashboard.summary.valid</span>
-    </ng-template>
-    <div class="text-surface-900 dark:text-surface-0 font-medium-center text-xl">{{ validCertificatesCount }}</div>
-</p-card>
-<p-card class="h-full">
-    <ng-template #subtitle>
-        <span translate>dashboard.summary.expiring</span>
-    </ng-template>
-    <div class="text-surface-900 dark:text-surface-0 font-medium-center text-xl">{{ expiringSoonCertificatesCount }}
+
+    <div class="relative bg-surface-0 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 p-5 flex flex-col items-center justify-center gap-2 shadow-sm overflow-hidden">
+        <div class="absolute top-4 right-4 w-9 h-9 bg-blue-50 dark:bg-blue-950 rounded-lg flex items-center justify-center">
+            <i class="pi pi-shield text-blue-500 text-sm"></i>
+        </div>
+        <div class="text-5xl font-bold text-surface-900 dark:text-surface-0 leading-none">{{ certificatesCount }}</div>
+        <span class="text-sm text-muted-color font-medium" translate>dashboard.summary.total</span>
     </div>
-</p-card>
-<p-card class="h-full">
-    <ng-template #subtitle>
-        <span translate>dashboard.summary.expired</span>
-    </ng-template>
-    <div class="text-surface-900 dark:text-surface-0 font-medium-center text-xl">{{ expiredCertificatesCount }}</div>
-</p-card>
+
+    <div class="relative bg-surface-0 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 p-5 flex flex-col items-center justify-center gap-2 shadow-sm overflow-hidden">
+        <div class="absolute top-4 right-4 w-9 h-9 bg-green-50 dark:bg-green-950 rounded-lg flex items-center justify-center">
+            <i class="pi pi-check-circle text-green-500 text-sm"></i>
+        </div>
+        <div class="text-5xl font-bold text-green-600 dark:text-green-400 leading-none">{{ validCertificatesCount }}</div>
+        <span class="text-sm text-muted-color font-medium" translate>dashboard.summary.valid</span>
+    </div>
+
+    <div class="relative bg-surface-0 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 p-5 flex flex-col items-center justify-center gap-2 shadow-sm overflow-hidden">
+        <div class="absolute top-4 right-4 w-9 h-9 bg-orange-50 dark:bg-orange-950 rounded-lg flex items-center justify-center">
+            <i class="pi pi-clock text-orange-500 text-sm"></i>
+        </div>
+        <div class="text-5xl font-bold text-orange-500 leading-none">{{ expiringSoonCertificatesCount }}</div>
+        <span class="text-sm text-muted-color font-medium" translate>dashboard.summary.expiring</span>
+    </div>
+
+    <div class="relative bg-surface-0 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 p-5 flex flex-col items-center justify-center gap-2 shadow-sm overflow-hidden">
+        <div class="absolute top-4 right-4 w-9 h-9 bg-red-50 dark:bg-red-950 rounded-lg flex items-center justify-center">
+            <i class="pi pi-times-circle text-red-500 text-sm"></i>
+        </div>
+        <div class="text-5xl font-bold text-red-500 leading-none">{{ expiredCertificatesCount }}</div>
+        <span class="text-sm text-muted-color font-medium" translate>dashboard.summary.expired</span>
+    </div>
+
 </div>

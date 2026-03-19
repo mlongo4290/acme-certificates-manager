@@ -9,17 +9,17 @@
     </div>
     }
     @else {
-    <div class="flex justify-between mb-1">
-        <div translate>dashboard.certificateAuthorities.total</div>
-        <div>{{ totalCAs }}</div>
+    <div class="flex justify-between items-center mb-2">
+        <span translate>dashboard.certificateAuthorities.total</span>
+        <span class="font-semibold">{{ totalCAs }}</span>
     </div>
-    <div class="flex justify-between mb-1">
+    <div class="flex justify-between items-center mb-2">
         <span translate>dashboard.certificateAuthorities.default</span>
-        <span>{{ defaultCA }}</span>
+        <span class="font-semibold">{{ defaultCA }}</span>
     </div>
-    <div class="flex justify-between mb-1">
+    <div class="flex justify-between items-center mb-2">
         <span translate>dashboard.certificateAuthorities.accounts</span>
-        <span>{{ acmeAccountsCount }}</span>
+        <span class="font-semibold">{{ acmeAccountsCount }}</span>
     </div>
     }
 </p-card>

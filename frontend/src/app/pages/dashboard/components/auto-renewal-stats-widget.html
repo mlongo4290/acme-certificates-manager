@@ -9,25 +9,22 @@
     </div>
     }
     @else {
-    <div class="flex justify-between mb-1">
-        <div translate>dashboard.autoRenewal.enabled</div>
-        <div>
-            <span class="text-primary">{{ certsWithAutoRenewal }}</span>
-            / {{ totalCertificates }}
+    <div class="flex justify-between items-center mb-2">
+        <span translate>dashboard.autoRenewal.enabled</span>
+        <span class="font-semibold">
+            <span class="text-primary">{{ certsWithAutoRenewal }}</span> / {{ totalCertificates }}
             ({{ (certsWithAutoRenewal / totalCertificates * 100) || 0 | number: '1.0-0' }}%)
-        </div>
+        </span>
     </div>
-    <div class="flex justify-between mb-1">
-        <div translate>dashboard.autoRenewal.nextScheduled</div>
-        <div>
-            {{ nextScheduledRenewals }}
-        </div>
+    <div class="flex justify-between items-center mb-2">
+        <span translate>dashboard.autoRenewal.nextScheduled</span>
+        <span class="font-semibold">{{ nextScheduledRenewals }}</span>
     </div>
-    <div class="flex justify-between mb-1">
-        <div translate>dashboard.autoRenewal.successRate</div>
-        <div [class]="successRate >= 90 ? 'text-green-500' : successRate >= 70 ? 'text-orange-500' : 'text-red-500'">
+    <div class="flex justify-between items-center mb-2">
+        <span translate>dashboard.autoRenewal.successRate</span>
+        <span class="font-semibold" [class]="successRate >= 90 ? 'text-green-500' : successRate >= 70 ? 'text-orange-500' : 'text-red-500'">
             {{ successRate }}%
-        </div>
+        </span>
     </div>
     }
 </p-card>

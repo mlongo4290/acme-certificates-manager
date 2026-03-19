@@ -9,17 +9,17 @@
     </div>
     }
     @else {
-    <div class="flex justify-between mb-1">
-        <div translate>dashboard.dnsProviders.total</div>
-        <div>{{ totalProviders }}</div>
+    <div class="flex justify-between items-center mb-2">
+        <span translate>dashboard.dnsProviders.total</span>
+        <span class="font-semibold">{{ totalProviders }}</span>
     </div>
-    <div class="flex justify-between mb-1">
+    <div class="flex justify-between items-center mb-2">
         <span translate>dashboard.dnsProviders.active</span>
-        <span class="text-green-500">{{ activeProviders }}</span>
+        <span class="font-semibold text-green-500">{{ activeProviders }}</span>
     </div>
-    <div class="flex justify-between mb-1">
+    <div class="flex justify-between items-center mb-2">
         <span translate>dashboard.dnsProviders.disabled</span>
-        <span class="text-orange-500">{{ disabledProviders }}</span>
+        <span class="font-semibold text-orange-500">{{ disabledProviders }}</span>
     </div>
     }
 </p-card>

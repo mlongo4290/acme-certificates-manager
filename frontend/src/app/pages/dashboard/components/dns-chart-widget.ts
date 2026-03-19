@@ -61,7 +61,7 @@ export class DnsChartWidget implements OnInit {
         this.chartOptions = {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: textColor }, position: 'bottom' } }
+            plugins: { legend: { labels: { color: textColor, usePointStyle: true }, position: 'bottom', title: { display: true} } }
         };
     }
 }
