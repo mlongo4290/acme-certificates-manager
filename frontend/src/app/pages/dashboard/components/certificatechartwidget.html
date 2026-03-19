@@ -1,11 +1,14 @@
+@if(showCaDistribution) {
 <p-card class="col-span-12 xl:col-span-4">
     <ng-template #subtitle>
-        <span translate>dashboard.charts.summary</span>
+        <span translate>dashboard.charts.caDistribution</span>
     </ng-template>
     <div class="flex justify-center items-center mt-2">
-        <p-chart type="pie" [data]="statsData" [options]="statsOptions" />
+        <p-chart type="pie" [data]="caDistributionData" [options]="caDistributionOptions" />
     </div>
 </p-card>
+}
+@if(showChallenge) {
 <p-card class="col-span-12 xl:col-span-4">
     <ng-template #subtitle>
         <span translate>dashboard.charts.challengeTypes</span>
@@ -14,7 +17,8 @@
         <p-chart type="pie" [data]="challengeTypeData" [options]="challengeTypeOptions" />
     </div>
 </p-card>
-
+}
+@if(showDns) {
 <p-card class="col-span-12 xl:col-span-4">
     <ng-template #subtitle>
         <span translate>dashboard.charts.dnsDistribution</span>
@@ -23,3 +27,4 @@
         <p-chart type="pie" [data]="providerDistributionData" [options]="providerDistributionOptions" />
     </div>
 </p-card>
+}

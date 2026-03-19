@@ -1,0 +1,14 @@
+<p-card class="h-full w-full">
+    <ng-template #subtitle>
+        <span translate>dashboard.charts.challengeTypes</span>
+    </ng-template>
+    @if(loading) {
+    <div class="text-center py-5">
+        <i class="pi pi-spin pi-spinner text-4xl text-muted-color"></i>
+    </div>
+    } @else {
+    <div class="flex justify-center items-center mt-2 h-48">
+        <p-chart type="pie" [data]="chartData" [options]="chartOptions" width="100%" />
+    </div>
+    }
+</p-card>

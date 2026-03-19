@@ -8,6 +8,30 @@
     </div>
 
     <div class="layout-topbar-actions">
+        @if (isAuthenticated && runningJobCount > 0) {
+        <div class="relative">
+            <button class="layout-topbar-action" pStyleClass="@next" enterFromClass="hidden"
+                enterActiveClass="animate-scalein" leaveToClass="hidden" leaveActiveClass="animate-fadeout"
+                [hideOnOutsideClick]="true">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span class="absolute -top-0.5 -right-0.5 bg-blue-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-0.5 leading-none">{{ runningJobCount }}</span>
+            </button>
+            <div class="hidden absolute right-0 top-[calc(100%+0.5rem)] w-72 bg-surface-0 dark:bg-surface-800 border border-surface-200 dark:border-surface-600 rounded-xl shadow-xl z-50 overflow-hidden animate-scalein">
+                @for (job of runningJobs; track job.certId) {
+                <div class="flex items-center gap-3 px-4 py-3 border-b border-surface-100 dark:border-surface-700 last:border-0">
+                    <i class="pi pi-spin pi-spinner text-blue-500 text-xs shrink-0"></i>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium truncate">{{ job.domain }}</div>
+                        <div class="text-xs text-surface-500 dark:text-surface-400">{{ 'jobs.type.' + job.type | translate }}</div>
+                    </div>
+                </div>
+                }
+                <div class="px-4 py-2 bg-surface-50 dark:bg-surface-900">
+                    <button type="button" class="text-xs text-primary hover:underline cursor-pointer" (click)="goToJobs()">{{ 'jobs.viewAll' | translate }}</button>
+                </div>
+            </div>
+        </div>
+        }
         <div class="layout-config-menu">
             <div class="relative">
                 <button class="layout-topbar-action" pStyleClass="@next" enterFromClass="hidden"

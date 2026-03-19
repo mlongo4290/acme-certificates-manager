@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, inject, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import { ButtonModule } from 'primeng/button';
 import { ChipModule } from 'primeng/chip';
@@ -26,12 +27,12 @@ import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
-import { environment } from '../../../environments/environment';
 import { CertificateViewerComponent } from '../../components/certificate-viewer/certificate-viewer.component';
 import { AcmeAccountService } from '../../services/acme-account.service';
 import { AcmeCaService } from '../../services/acme-ca.service';
 import { AuthService } from '../../services/auth.service';
 import { Certificate, CertificateService } from '../../services/certificate.service';
+import { JobService } from '../../services/job.service';
 import { DnsProviderService } from '../../services/dns-provider.service';
 import { PostIssueScriptsService } from '../../services/post-issue-scripts.service';
 import { SshKeyService } from '../../services/ssh-key.service';
@@ -70,8 +71,9 @@ import { SshKeyService } from '../../services/ssh-key.service';
     ],
     templateUrl: './certificates.html'
 })
-export class CertificatesComponent implements OnInit {
+export class CertificatesComponent implements OnInit, OnDestroy {
     private certificateService = inject(CertificateService);
+    private jobService = inject(JobService);
     private dnsProviderService = inject(DnsProviderService);
     private acmeCaService = inject(AcmeCaService);
     private acmeAccountService = inject(AcmeAccountService);
@@ -90,15 +92,18 @@ export class CertificatesComponent implements OnInit {
     certificates: Certificate[] = [];
     totalRecords = 0;
     displayDialog = false;
-    displayProgressDialog = false;
     displayScriptErrorDialog = false;
     displayLogsDialog = false;
     scriptErrorDetails: { output?: string; error?: string } = {};
-    progressMessages: string[] = [];
     certificateLogs: any[] = [];
     loadingLogs = false;
     loading = false;
     saving = false;
+
+    // Tracks running jobs for per-cert busy state
+    activeJobs: { certId: string }[] = [];
+    private jobCompletedSub?: Subscription;
+    isCertBusy(certId: string) { return this.activeJobs.some(j => j.certId === certId); }
     activeTabIndex = 0;
 
     get dateFormat(): string {
@@ -131,8 +136,8 @@ export class CertificatesComponent implements OnInit {
     postIssueScripts: any[] = [];
     sshKeys: any[] = [];
     selectedScript: any = null;
-    downloadMenuItems: any[] = [];
-    @ViewChild('downloadMenu') downloadMenu: any;
+    rowMenuItems: MenuItem[] = [];
+    @ViewChild('rowMenu') rowMenu: any;
     @ViewChild('dt') table: any;
 
     // Certificate viewer dialog
@@ -202,6 +207,14 @@ export class CertificatesComponent implements OnInit {
         this.loadSshKeys();
         this.loadRenewalConfig();
         this.loadAllTags();
+        this.loadJobs();
+
+        // When a job stream completes, remove from local busy-tracking and refresh the table
+        this.jobCompletedSub = this.jobService.jobCompleted$.subscribe(certId => {
+            this.activeJobs = this.activeJobs.filter(j => j.certId !== certId);
+            this.reloadTableData();
+            this.cdr.detectChanges();
+        });
 
         this.translateService.onLangChange.subscribe(() => {
             this.statuses = [
@@ -211,6 +224,10 @@ export class CertificatesComponent implements OnInit {
                 { label: this.translateService.instant('certificates.status.error'), value: 'error' }
             ];
         });
+    }
+
+    ngOnDestroy() {
+        this.jobCompletedSub?.unsubscribe();
     }
 
     onLazyLoad(event: any) {
@@ -282,6 +299,35 @@ export class CertificatesComponent implements OnInit {
                     detail: this.translateService.instant('certificates.errors.loadFailed')
                 });
                 this.loading = false;
+            }
+        });
+    }
+
+    private startJob(certId: string, domain: string, type: string) {
+        const job = { certId };
+        this.activeJobs.push(job);
+        this.jobService.addRunning({ certId, domain, type });
+        return job;
+    }
+
+    private removeJob(job: { certId: string }) {
+        const idx = this.activeJobs.indexOf(job);
+        if (idx >= 0) {
+            this.activeJobs.splice(idx, 1);
+            this.jobService.removeRunning(job.certId);
+        }
+    }
+
+    loadJobs() {
+        this.jobService.getJobs().subscribe({
+            next: (jobs) => {
+                for (const j of jobs.filter(j => j.status === 'running')) {
+                    if (this.activeJobs.some(a => a.certId === j.certId)) continue;
+                    this.activeJobs.push({ certId: j.certId });
+                    // addRunning + openStream are idempotent; topbar may have already called them
+                    this.jobService.addRunning({ certId: j.certId, domain: j.certDomain, type: j.type });
+                    this.jobService.openStream(j.certId, j._id);
+                }
             }
         });
     }
@@ -552,74 +598,11 @@ export class CertificatesComponent implements OnInit {
             acceptLabel: this.translateService.instant('yes'),
             rejectLabel: this.translateService.instant('no'),
             accept: () => {
-                this.displayProgressDialog = true;
-                this.progressMessages = [];
-                this.saving = true;
-
-                const token = this.authService.getToken();
-                const eventSource = new EventSource(
-                    `${environment.apiUrl}/certificates/${certificate._id}/reissue?token=${token}&domain=${encodeURIComponent(certificate.domain)}&additionalDomains=${encodeURIComponent(JSON.stringify(certificate.additionalDomains || []))}`
-                );
-
-                eventSource.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
-
-                    if (data.type === 'progress') {
-                        let icon = '';
-                        if (data.level === 'error') {
-                            icon = '✗ ';
-                        } else if (data.level === 'warn') {
-                            icon = '⚠ ';
-                        }
-                        this.progressMessages.push(icon + data.message);
-                        this.cdr.detectChanges();
-
-                        setTimeout(() => {
-                            const container = document.querySelector('.max-h-96.overflow-y-auto');
-                            if (container) {
-                                container.scrollTop = container.scrollHeight;
-                            }
-                        }, 10);
-                    } else if (data.type === 'success') {
-                        this.progressMessages.push('✓ ' + data.message);
-                        this.cdr.detectChanges();
-                        eventSource.close();
-                        setTimeout(() => {
-                            this.displayProgressDialog = false;
-                            this.messageService.add({
-                                severity: 'success',
-                                summary: this.translateService.instant('common.success'),
-                                detail: data.message,
-                                life: 5000
-                            });
-                            this.reloadTableData();
-                            this.saving = false;
-                        }, 1000);
-                    } else if (data.type === 'error') {
-                        this.progressMessages.push('✗ ' + data.message);
-                        this.cdr.detectChanges();
-                        eventSource.close();
-                        setTimeout(() => {
-                            this.messageService.add({
-                                severity: 'error',
-                                summary: this.translateService.instant('common.error'),
-                                detail: data.message,
-                                life: 5000
-                            });
-                            this.saving = false;
-                        }, 1000);
-                    }
-                };
-
-                eventSource.onerror = () => {
-                    eventSource.close();
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: this.translateService.instant('common.error'),
-                        detail: this.translateService.instant('certificates.errors.connectionError')
-                    });
-                    this.saving = false;
-                };
+                const job = this.startJob(certificate._id!, certificate.domain, 'reissue');
+                this.certificateService.reissueCertificate(certificate._id!, certificate.domain, certificate.additionalDomains || []).subscribe({
+                    next: ({ jobId }) => this.jobService.openStream(job.certId, jobId),
+                    error: () => this.removeJob(job)
+                });
             }
         });
     }
@@ -632,74 +615,11 @@ export class CertificatesComponent implements OnInit {
             acceptLabel: this.translateService.instant('yes'),
             rejectLabel: this.translateService.instant('no'),
             accept: () => {
-                this.displayProgressDialog = true;
-                this.progressMessages = [];
-                this.saving = true;
-
-                const token = this.authService.getToken();
-                const eventSource = new EventSource(
-                    `${environment.apiUrl}/certificates/${certificate._id}/renew?token=${token}`
-                );
-
-                eventSource.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
-
-                    if (data.type === 'progress') {
-                        let icon = '';
-                        if (data.level === 'error') {
-                            icon = '✗ ';
-                        } else if (data.level === 'warn') {
-                            icon = '⚠ ';
-                        }
-                        this.progressMessages.push(icon + data.message);
-                        this.cdr.detectChanges();
-
-                        setTimeout(() => {
-                            const container = document.querySelector('.max-h-96.overflow-y-auto');
-                            if (container) {
-                                container.scrollTop = container.scrollHeight;
-                            }
-                        }, 10);
-                    } else if (data.type === 'success') {
-                        this.progressMessages.push('✓ ' + data.message);
-                        this.cdr.detectChanges();
-                        eventSource.close();
-                        setTimeout(() => {
-                            this.displayProgressDialog = false;
-                            this.messageService.add({
-                                severity: 'success',
-                                summary: this.translateService.instant('common.success'),
-                                detail: data.message,
-                                life: 5000
-                            });
-                            this.reloadTableData();
-                            this.saving = false;
-                        }, 1000);
-                    } else if (data.type === 'error') {
-                        this.progressMessages.push('✗ ' + data.message);
-                        this.cdr.detectChanges();
-                        eventSource.close();
-                        setTimeout(() => {
-                            this.messageService.add({
-                                severity: 'error',
-                                summary: this.translateService.instant('common.error'),
-                                detail: data.message,
-                                life: 5000
-                            });
-                            this.saving = false;
-                        }, 1000);
-                    }
-                };
-
-                eventSource.onerror = () => {
-                    eventSource.close();
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: this.translateService.instant('common.error'),
-                        detail: this.translateService.instant('certificates.errors.connectionError')
-                    });
-                    this.saving = false;
-                };
+                const job = this.startJob(certificate._id!, certificate.domain, 'renew');
+                this.certificateService.renewCertificate(certificate._id!).subscribe({
+                    next: ({ jobId }) => this.jobService.openStream(job.certId, jobId),
+                    error: () => this.removeJob(job)
+                });
             }
         });
     }
@@ -712,72 +632,28 @@ export class CertificatesComponent implements OnInit {
             acceptLabel: this.translateService.instant('yes'),
             rejectLabel: this.translateService.instant('no'),
             accept: () => {
-                this.displayProgressDialog = true;
-                this.progressMessages = [];
-                this.saving = true;
+                const job = this.startJob(certificate._id!, certificate.domain, 'issue');
+                this.certificateService.issueCertificate(certificate._id!).subscribe({
+                    next: ({ jobId }) => this.jobService.openStream(job.certId, jobId),
+                    error: () => this.removeJob(job)
+                });
+            }
+        });
+    }
 
-                const token = this.authService.getToken();
-                const eventSource = new EventSource(
-                    `${environment.apiUrl}/certificates/${certificate._id}/issue?token=${token}`
-                );
-
-                eventSource.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
-
-                    if (data.type === 'progress') {
-                        // Add icon based on level
-                        let icon = '';
-                        if (data.level === 'error') {
-                            icon = '✗ ';
-                        } else if (data.level === 'warn') {
-                            icon = '⚠ ';
-                        }
-                        this.progressMessages.push(icon + data.message);
-
-                        // Force change detection
-                        this.cdr.detectChanges();
-
-                        // Scroll to bottom
-                        setTimeout(() => {
-                            const container = document.querySelector('.max-h-96.overflow-y-auto');
-                            if (container) {
-                                container.scrollTop = container.scrollHeight;
-                            }
-                        }, 10);
-                    } else if (data.type === 'success') {
-                        this.progressMessages.push('✓ ' + data.message);
-                        this.cdr.detectChanges();
-                        eventSource.close();
-                        setTimeout(() => {
-                            this.displayProgressDialog = false;
-                            this.messageService.add({
-                                severity: 'success',
-                                summary: this.translateService.instant('common.success'),
-                                detail: data.message,
-                                life: 5000
-                            });
-                            this.reloadTableData();
-                            this.saving = false;
-                        }, 2000);
-                    } else if (data.type === 'error') {
-                        this.progressMessages.push('✗ ' + data.message);
-                        this.cdr.detectChanges();
-                        eventSource.close();
-                        // Don't close the dialog on error - let user read the messages
-                        this.saving = false;
-                    }
-                };
-
-                eventSource.onerror = (error) => {
-                    eventSource.close();
-                    this.displayProgressDialog = false;
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: this.translateService.instant('common.error'),
-                        detail: this.translateService.instant('certificates.errors.connectionError')
-                    });
-                    this.saving = false;
-                };
+    dryRunCertificate(certificate: Certificate) {
+        this.confirmationService.confirm({
+            message: this.translateService.instant('certificates.dryRunConfirm', { domain: certificate.domain }),
+            header: this.translateService.instant('certificates.actions.dryRun'),
+            icon: 'pi pi-search',
+            acceptLabel: this.translateService.instant('yes'),
+            rejectLabel: this.translateService.instant('no'),
+            accept: () => {
+                const job = this.startJob(certificate._id!, certificate.domain, 'dry-run');
+                this.certificateService.dryRunCertificate(certificate._id!).subscribe({
+                    next: ({ jobId }) => this.jobService.openStream(job.certId, jobId),
+                    error: () => this.removeJob(job)
+                });
             }
         });
     }
@@ -1092,33 +968,86 @@ export class CertificatesComponent implements OnInit {
         return provider ? provider.label : value;
     }
 
-    showDownloadMenu(event: Event, cert: Certificate) {
-        // Update menu items for the selected certificate
-        this.downloadMenuItems = [
-            {
+    showRowMenu(event: Event, cert: Certificate) {
+        const items: MenuItem[] = [];
+
+        if (cert.challengeType === 'dns-01') {
+            items.push({
+                label: this.translateService.instant('certificates.actions.dryRun'),
+                icon: 'pi pi-search',
+                command: () => this.dryRunCertificate(cert)
+            });
+            items.push({ separator: true });
+        }
+
+        if (cert.status === 'valid' || cert.status === 'expired') {
+            items.push({
+                label: this.translateService.instant('certificates.actions.viewDetails'),
+                icon: 'pi pi-info-circle',
+                command: () => this.showCertificateDetails(cert)
+            });
+            items.push({
                 label: this.translateService.instant('certificates.actions.downloadCert'),
                 icon: 'pi pi-file',
                 command: () => this.downloadCertificate(cert, 'cert')
-            },
-            {
+            });
+            items.push({
                 label: this.translateService.instant('certificates.actions.downloadKey'),
                 icon: 'pi pi-key',
                 command: () => this.downloadCertificate(cert, 'key')
-            },
-            {
+            });
+            items.push({
                 label: this.translateService.instant('certificates.actions.downloadFullchain'),
                 icon: 'pi pi-file-export',
                 command: () => this.downloadCertificate(cert, 'fullchain')
-            },
-            {
+            });
+            items.push({
                 label: this.translateService.instant('certificates.actions.downloadZip'),
                 icon: 'pi pi-file-plus',
                 command: () => this.downloadCertificate(cert, 'zip')
-            }
-        ];
+            });
+            items.push({ separator: true });
+        }
 
-        // Show the menu
-        this.downloadMenu.toggle(event);
+        if (cert.postIssueScripts && cert.postIssueScripts.length > 0) {
+            items.push({
+                label: this.translateService.instant('certificates.actions.runScripts'),
+                icon: 'pi pi-bolt',
+                command: () => this.runPostIssuanceScripts(cert)
+            });
+        }
+
+        items.push({
+            label: this.translateService.instant('certificates.viewLogs'),
+            icon: 'pi pi-history',
+            command: () => this.showLogs(cert)
+        });
+
+        items.push({ separator: true });
+
+        items.push({
+            label: this.translateService.instant(cert.enabled === false ? 'certificates.actions.enable' : 'certificates.actions.disable'),
+            icon: cert.enabled === false ? 'pi pi-play-circle' : 'pi pi-pause-circle',
+            command: () => this.toggleEnabled(cert)
+        });
+        items.push({
+            label: this.translateService.instant('certificates.edit'),
+            icon: 'pi pi-pencil',
+            command: () => this.showEditDialog(cert)
+        });
+
+        items.push({ separator: true });
+
+        items.push({
+            label: this.translateService.instant('common.delete'),
+            icon: 'pi pi-trash',
+            styleClass: 'text-red-500',
+            command: () => this.deleteCertificate(cert)
+        });
+
+        this.rowMenuItems = items;
+        this.cdr.detectChanges();
+        this.rowMenu.toggle(event);
     }
 
     showCertificateDetails(cert: Certificate) {

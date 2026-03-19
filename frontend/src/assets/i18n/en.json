@@ -35,6 +35,7 @@
         "delete": "Delete",
         "create": "Create",
         "close": "Close",
+        "minimize": "Minimize",
         "actions": "Actions",
         "name": "Name",
         "status": "Status",
@@ -62,6 +63,29 @@
         "security": "Security",
         "swaggerDocs": "API Documentation",
         "configExport": "Export / Import Config"
+    },
+    "jobs": {
+        "title": "Jobs",
+        "description": "Running and recently completed certificate operations",
+        "running": "running",
+        "completed": "completed",
+        "empty": "No jobs found",
+        "dismiss": "Dismiss",
+        "dismissAll": "Dismiss all",
+        "waitingForOutput": "Waiting for output...",
+        "completedAt": "Completed at",
+        "viewAll": "View all jobs",
+        "type": {
+            "issue": "Issue",
+            "renew": "Renew",
+            "reissue": "Reissue",
+            "dry-run": "Dry Run"
+        },
+        "status": {
+            "running": "Running",
+            "success": "Success",
+            "error": "Error"
+        }
     },
     "auth": {
         "login": "Login",
@@ -300,7 +324,7 @@
     "dashboard": {
         "title": "Dashboard",
         "charts": {
-            "summary": "Certificate Summary",
+            "caDistribution": "Distribution by CA",
             "challengeTypes": "Challenge Types",
             "dnsDistribution": "DNS Provider Distribution"
         },
@@ -344,7 +368,38 @@
             "noAlerts": "No alerts at this time",
             "certsWithoutRenewal": "Certificates without Auto-Renewal",
             "unregisteredAccounts": "Unregistered ACME Accounts"
-        }
+        },
+        "recentJobs": {
+            "title": "Recent Operations",
+            "viewAll": "View all",
+            "empty": "No recent operations"
+        },
+        "customize": "Customize",
+        "customizeHint": "Toggle widgets on or off. Changes are saved automatically.",
+        "resetConfig": "Reset to default",
+        "sections": {
+            "infoCards": "Info cards",
+            "stats": "Statistics",
+            "charts": "Charts",
+            "activity": "Activity"
+        },
+        "widgets": {
+            "alerts": "Alerts & Warnings",
+            "dnsProviders": "DNS Providers",
+            "expiringCerts": "Expiring Certificates",
+            "caStatus": "Certificate Authorities",
+            "autoRenewal": "Auto-Renewal Statistics",
+            "recentJobs": "Recent Operations",
+            "chartCaDistribution": "Distribution by CA chart",
+            "chartChallengeTypes": "Challenge Types chart",
+            "chartDnsDistribution": "DNS Distribution chart",
+            "recentActivity": "Recent Activity"
+        },
+        "editDashboard": "Edit dashboard",
+        "doneEditing": "Done",
+        "editMode": "Edit mode",
+        "editModeDesc": "Drag and resize widgets",
+        "editModeHint": "Drag widgets to rearrange, drag corners to resize"
     },
     "certificates": {
         "title": "Certificates",
@@ -365,6 +420,7 @@
         "issueConfirm": "Confirm certificate issue",
         "reissueConfirm": "Confirm certificate reissue",
         "renewConfirm": "Confirm certificate renewal",
+        "dryRunConfirm": "Run a dry-run validation for '{{domain}}'? DNS records will be created and validated but no certificate will be issued.",
         "details": "Certificate Details",
         "status": {
             "valid": "Valid",
@@ -395,6 +451,10 @@
         "tags": "Tags",
         "addTag": "Add tag...",
         "filterByTag": "Filter by tag",
+        "jobs": {
+            "running": "job(s) running",
+            "done": "All jobs completed"
+        },
         "bulk": {
             "selected": "selected",
             "enabled": "{{count}} certificates enabled",
@@ -419,7 +479,8 @@
             "exportZip": "Export as ZIP",
             "viewDetails": "View Certificate Details",
             "enable": "Enable Certificate",
-            "disable": "Disable Certificate"
+            "disable": "Disable Certificate",
+            "dryRun": "Dry Run (validate DNS challenge)"
         },
         "confirm": {
             "delete": "Are you sure you want to delete the certificate for '{{domain}}'?",

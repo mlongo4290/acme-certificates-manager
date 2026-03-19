@@ -1,25 +1,27 @@
-<p-card class="col-span-12 lg:col-span-6 xl:col-span-3">
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 h-full">
+<p-card class="h-full">
     <ng-template #subtitle>
         <span translate>dashboard.summary.total</span>
     </ng-template>
     <div class="text-surface-900 dark:text-surface-0 font-medium-center text-xl">{{ certificatesCount }}</div>
 </p-card>
-<p-card class="col-span-12 lg:col-span-6 xl:col-span-3">
+<p-card class="h-full">
     <ng-template #subtitle>
         <span translate>dashboard.summary.valid</span>
     </ng-template>
     <div class="text-surface-900 dark:text-surface-0 font-medium-center text-xl">{{ validCertificatesCount }}</div>
 </p-card>
-<p-card class="col-span-12 lg:col-span-6 xl:col-span-3">
+<p-card class="h-full">
     <ng-template #subtitle>
         <span translate>dashboard.summary.expiring</span>
     </ng-template>
     <div class="text-surface-900 dark:text-surface-0 font-medium-center text-xl">{{ expiringSoonCertificatesCount }}
     </div>
 </p-card>
-<p-card class="col-span-12 lg:col-span-6 xl:col-span-3">
+<p-card class="h-full">
     <ng-template #subtitle>
         <span translate>dashboard.summary.expired</span>
     </ng-template>
     <div class="text-surface-900 dark:text-surface-0 font-medium-center text-xl">{{ expiredCertificatesCount }}</div>
 </p-card>
+</div>

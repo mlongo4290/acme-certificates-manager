@@ -1,8 +1,11 @@
 import archiver from 'archiver';
 import { Request, Response } from 'express';
 import asyncHandler from 'express-async-handler';
+import { AcmeAccount } from '../models/AcmeAccount';
+import { AcmeCa } from '../models/AcmeCa';
 import { Certificate } from '../models/certificate.model';
 import { PostIssueScript } from '../models/postIssueScript.model';
+import { jobManagerService } from '../services/jobManager.service';
 import { ActivityLogService } from '../services/activityLog.service';
 import { AgendaService } from '../services/agenda.service';
 import { CertificateService } from '../services/certificate.service';
@@ -119,39 +122,48 @@ export class CertificateController {
         const filterQuery: any = {};
 
         // Process filters - they come as filters[fieldName]=JSON object with operator and constraints
-        Object.keys(req.query).forEach(key => {
-            if (key.startsWith('filters[') && key.endsWith(']')) {
-                const field = key.substring(8, key.length - 1);
-                const fieldFilterStr = req.query[key] as string;
+        for (const key of Object.keys(req.query)) {
+            if (!key.startsWith('filters[') || !key.endsWith(']')) continue;
 
-                try {
-                    const fieldFilter = JSON.parse(fieldFilterStr);
+            const field = key.substring(8, key.length - 1);
+            const fieldFilterStr = req.query[key] as string;
 
-                    if (!fieldFilter.constraints || fieldFilter.constraints.length === 0) {
-                        return;
-                    }
+            try {
+                const fieldFilter = JSON.parse(fieldFilterStr);
+                if (!fieldFilter.constraints || fieldFilter.constraints.length === 0) continue;
 
-                    const constraints = fieldFilter.constraints;
-                    const operator = fieldFilter.operator || 'and';
+                const constraints = fieldFilter.constraints;
+                const operator = fieldFilter.operator || 'and';
 
-                    if (constraints.length === 1) {
-                        // Single constraint
-                        filterQuery[field] = this.buildFilterQuery(field, constraints[0].value, constraints[0].matchMode);
-                    } else {
-                        // Multiple constraints - use operator (and/or)
-                        const logicOp = operator === 'or' ? '$or' : '$and';
-                        filterQuery[logicOp] = filterQuery[logicOp] || [];
-                        constraints.forEach((constraint: any) => {
-                            const condition: any = {};
-                            condition[field] = this.buildFilterQuery(field, constraint.value, constraint.matchMode);
-                            filterQuery[logicOp].push(condition);
-                        });
-                    }
-                } catch (error) {
-                    // Silent fail
+                // Handle populated reference fields — match by name, not ObjectId
+                if (field === 'certificateAuthority') {
+                    const nameQuery = this.buildFilterQuery('name', constraints[0].value, constraints[0].matchMode);
+                    const ids = await AcmeCa.distinct('_id', { name: nameQuery });
+                    filterQuery[field] = { $in: ids };
+                    continue;
                 }
+                if (field === 'acmeAccount') {
+                    const nameQuery = this.buildFilterQuery('name', constraints[0].value, constraints[0].matchMode);
+                    const ids = await AcmeAccount.distinct('_id', { name: nameQuery });
+                    filterQuery[field] = { $in: ids };
+                    continue;
+                }
+
+                if (constraints.length === 1) {
+                    filterQuery[field] = this.buildFilterQuery(field, constraints[0].value, constraints[0].matchMode);
+                } else {
+                    const logicOp = operator === 'or' ? '$or' : '$and';
+                    filterQuery[logicOp] = filterQuery[logicOp] || [];
+                    for (const constraint of constraints) {
+                        const condition: any = {};
+                        condition[field] = this.buildFilterQuery(field, constraint.value, constraint.matchMode);
+                        filterQuery[logicOp].push(condition);
+                    }
+                }
+            } catch (error) {
+                // Silent fail
             }
-        });
+        }
 
         // Get total count
         const totalRecords = await Certificate.countDocuments(filterQuery);
@@ -502,159 +514,87 @@ export class CertificateController {
     });
 
     renewCertificate = asyncHandler(async (req: Request, res: Response) => {
-        const certificateId = req.params.id;
+        const certificate = await Certificate.findById(req.params.id);
+        if (!certificate) { res.status(404); throw new Error('Certificate not found'); }
 
-        // Set headers for Server-Sent Events
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('X-Accel-Buffering', 'no');
-        res.flushHeaders();
+        const job = await jobManagerService.createJob(certificate._id.toString(), certificate.domain, 'renew');
+        res.json({ jobId: job._id.toString() });
 
-        // Attach SSE response to logger
-        Logger.setSSEResponse(res);
-
-        try {
-            await this.certificateService.issueCertificate(certificateId);
-
-            // Schedule renewal if auto-renewal is enabled
-            const certificate = await Certificate.findById(certificateId);
-            if (certificate) {
-                const expiryDate = certificate.certificate ? getCertificateExpiryDate(certificate.certificate) : null;
-                if (certificate.enabled !== false && certificate.autoRenewal && certificate.renewalSchedule && expiryDate) {
-                    const renewalDate = this.calculateRenewalDate(expiryDate, certificate.renewalSchedule);
-                    await this.schedulerService.scheduleRenewal(certificateId, renewalDate);
-                    this.logger.info(`Rescheduled renewal for renewed certificate ${certificateId} at ${renewalDate.toISOString()}`);
+        jobManagerService.runJob(job._id.toString(), async () => {
+            await this.certificateService.issueCertificate(certificate._id.toString());
+            const updated = await Certificate.findById(certificate._id);
+            if (updated) {
+                const expiryDate = updated.certificate ? getCertificateExpiryDate(updated.certificate) : null;
+                if (updated.enabled !== false && updated.autoRenewal && updated.renewalSchedule && expiryDate) {
+                    const renewalDate = this.calculateRenewalDate(expiryDate, updated.renewalSchedule);
+                    await this.schedulerService.scheduleRenewal(updated._id.toString(), renewalDate);
+                    this.logger.info(`Rescheduled renewal for ${updated._id} at ${renewalDate.toISOString()}`);
                 }
             }
-
-            res.write(`data: ${JSON.stringify({ type: 'success', message: 'Certificate renewed successfully' })}\n\n`);
-            res.end();
-        } catch (error: any) {
-            this.logger.error('Certificate renewal failed', error);
-            res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
-            res.end();
-        } finally {
-            // Clear SSE response from logger
-            Logger.clearSSEResponse();
-        }
+        }).catch(err => this.logger.error('renewCertificate background error', err));
     });
 
-    /**
-     * Issue certificate with real-time progress updates using Server-Sent Events
-     */
     issueCertificate = asyncHandler(async (req: Request, res: Response) => {
-        const certificateId = req.params.id;
+        const certificate = await Certificate.findById(req.params.id);
+        if (!certificate) { res.status(404); throw new Error('Certificate not found'); }
 
-        // Set headers for Server-Sent Events
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
-        res.flushHeaders();
+        const job = await jobManagerService.createJob(certificate._id.toString(), certificate.domain, 'issue');
+        res.json({ jobId: job._id.toString() });
 
-        // Attach SSE response to logger
-        Logger.setSSEResponse(res);
-
-        try {
-            await this.certificateService.issueCertificate(certificateId);
-
-            // Reset modified flag and schedule renewal if auto-renewal is enabled
-            const certificate = await Certificate.findById(certificateId);
-            if (certificate) {
-                certificate.modified = false;
-                await certificate.save();
-
-                // Log successful issuance
-                await ActivityLogService.logCertificateIssued(certificate.domain, certificateId, req);
-
-                // Calculate expiryDate from certificate
-                const expiryDate = certificate.certificate ? getCertificateExpiryDate(certificate.certificate) : null;
-
-                if (certificate.enabled !== false && certificate.autoRenewal && certificate.renewalSchedule && expiryDate) {
-                    const renewalDate = this.calculateRenewalDate(expiryDate, certificate.renewalSchedule);
-                    await this.schedulerService.scheduleRenewal(certificateId, renewalDate);
-                    this.logger.info(`Scheduled renewal for certificate ${certificateId} at ${renewalDate.toISOString()}`);
+        jobManagerService.runJob(job._id.toString(), async () => {
+            await this.certificateService.issueCertificate(certificate._id.toString());
+            const updated = await Certificate.findById(certificate._id);
+            if (updated) {
+                updated.modified = false;
+                await updated.save();
+                await ActivityLogService.logCertificateIssued(updated.domain, updated._id.toString(), req);
+                const expiryDate = updated.certificate ? getCertificateExpiryDate(updated.certificate) : null;
+                if (updated.enabled !== false && updated.autoRenewal && updated.renewalSchedule && expiryDate) {
+                    const renewalDate = this.calculateRenewalDate(expiryDate, updated.renewalSchedule);
+                    await this.schedulerService.scheduleRenewal(updated._id.toString(), renewalDate);
+                    this.logger.info(`Scheduled renewal for ${updated._id} at ${renewalDate.toISOString()}`);
                 }
             }
-
-            res.write(`data: ${JSON.stringify({ type: 'success', message: 'Certificate issued successfully' })}\n\n`);
-            res.end();
-        } catch (error: any) {
-            this.logger.error('Certificate issuance failed', error);
-
-            // Log error
-            const certificate = await Certificate.findById(certificateId);
-            if (certificate) {
-                await ActivityLogService.logCertificateError(certificate.domain, certificateId, error.message, req);
-            }
-
-            res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
-            res.end();
-        } finally {
-            // Clear SSE response from logger
-            Logger.clearSSEResponse();
-        }
+        }).catch(err => this.logger.error('issueCertificate background error', err));
     });
 
     reissueCertificate = asyncHandler(async (req: Request, res: Response) => {
-        const certificateId = req.params.id;
-        const domain = req.query.domain as string;
-        const additionalDomainsStr = req.query.additionalDomains as string;
-        const additionalDomains = additionalDomainsStr ? JSON.parse(additionalDomainsStr) : [];
+        const certificate = await Certificate.findById(req.params.id);
+        if (!certificate) { res.status(404); throw new Error('Certificate not found'); }
 
-        // Set headers for Server-Sent Events
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('X-Accel-Buffering', 'no');
-        res.flushHeaders();
+        const domain = req.body.domain as string;
+        const additionalDomains = req.body.additionalDomains ?? [];
 
-        // Attach SSE response to logger
-        Logger.setSSEResponse(res);
+        const job = await jobManagerService.createJob(certificate._id.toString(), certificate.domain, 'reissue');
+        res.json({ jobId: job._id.toString() });
 
-        try {
-            await this.certificateService.reissueCertificate(certificateId, { domain, additionalDomains });
-
-            // Reset modified flag and schedule renewal if auto-renewal is enabled
-            const certificate = await Certificate.findById(certificateId);
-            if (certificate) {
-                certificate.modified = false;
-                await certificate.save();
-
-                // Log successful reissuance (using issued log type)
-                await ActivityLogService.logCertificateIssued(certificate.domain, certificateId, req);
-
-                // Calculate expiryDate from certificate
-                const expiryDate = certificate.certificate ? getCertificateExpiryDate(certificate.certificate) : null;
-
-                if (certificate.autoRenewal && certificate.renewalSchedule && expiryDate) {
-                    const renewalDate = this.calculateRenewalDate(expiryDate, certificate.renewalSchedule);
-                    await this.schedulerService.scheduleRenewal(certificateId, renewalDate);
-                    this.logger.info(`Rescheduled renewal for reissued certificate ${certificateId} at ${renewalDate.toISOString()}`);
+        jobManagerService.runJob(job._id.toString(), async () => {
+            await this.certificateService.reissueCertificate(certificate._id.toString(), { domain, additionalDomains });
+            const updated = await Certificate.findById(certificate._id);
+            if (updated) {
+                updated.modified = false;
+                await updated.save();
+                await ActivityLogService.logCertificateIssued(updated.domain, updated._id.toString(), req);
+                const expiryDate = updated.certificate ? getCertificateExpiryDate(updated.certificate) : null;
+                if (updated.autoRenewal && updated.renewalSchedule && expiryDate) {
+                    const renewalDate = this.calculateRenewalDate(expiryDate, updated.renewalSchedule);
+                    await this.schedulerService.scheduleRenewal(updated._id.toString(), renewalDate);
+                    this.logger.info(`Rescheduled renewal for ${updated._id} at ${renewalDate.toISOString()}`);
                 }
             }
+        }).catch(err => this.logger.error('reissueCertificate background error', err));
+    });
 
-            res.write(`data: ${JSON.stringify({ type: 'success', message: 'Certificate reissued successfully' })}\n\n`);
-            res.end();
-        } catch (error: any) {
-            this.logger.error('Certificate reissue failed', error);
+    dryRunCertificate = asyncHandler(async (req: Request, res: Response) => {
+        const certificate = await Certificate.findById(req.params.id);
+        if (!certificate) { res.status(404); throw new Error('Certificate not found'); }
 
-            // Log error
-            const certificate = await Certificate.findById(certificateId);
-            if (certificate) {
-                await ActivityLogService.logCertificateError(certificate.domain, certificateId, error.message, req);
-            }
+        const job = await jobManagerService.createJob(certificate._id.toString(), certificate.domain, 'dry-run');
+        res.json({ jobId: job._id.toString() });
 
-            res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
-            res.end();
-        } finally {
-            // Clear SSE response from logger
-            Logger.clearSSEResponse();
-        }
+        jobManagerService.runJob(job._id.toString(), async () => {
+            await this.certificateService.issueCertificate(certificate._id.toString(), { dryRun: true });
+        }).catch(err => this.logger.error('dryRunCertificate background error', err));
     });
 
     testPostIssueScript = asyncHandler(async (req: Request, res: Response) => {

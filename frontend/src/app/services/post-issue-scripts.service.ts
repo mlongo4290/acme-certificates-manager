@@ -27,7 +27,7 @@ export class PostIssueScriptsService {
     private http = inject(HttpClient);
     private apiUrl = `${environment.apiUrl}/post-issue-scripts`;
 
-    getAllPostIssueScripts(page: number = 0, limit: number = 10, sortField: string = 'name', sortOrder: number = 1, filters: any = {}): Observable<{ data: PostIssueScript[], totalRecords: number }> {
+    getAllPostIssueScripts(page: number = 0, limit: number = 0, sortField: string = 'name', sortOrder: number = 1, filters: any = {}): Observable<{ data: PostIssueScript[], totalRecords: number }> {
         let params: any = {
             page: page.toString(),
             limit: limit.toString(),

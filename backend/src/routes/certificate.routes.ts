@@ -1,6 +1,6 @@
 import express from 'express';
 import { CertificateController } from '../controllers/certificate.controller';
-import { authMiddleware, requireAdminOrCertManager, sseAuthMiddleware } from '../middleware/auth';
+import { authMiddleware, requireAdminOrCertManager } from '../middleware/auth';
 
 export const createCertificateRouter = (controller: CertificateController) => {
     const router = express.Router();
@@ -24,10 +24,11 @@ export const createCertificateRouter = (controller: CertificateController) => {
     router.delete('/:id', authMiddleware as any, requireAdminOrCertManager as any, controller.deleteCertificate);
     router.post('/:id/test-script', authMiddleware as any, requireAdminOrCertManager as any, controller.testPostIssueScript);
 
-    // SSE operations (issue/renew): ADMIN or CERT_MANAGER only
-    router.get('/:id/issue', sseAuthMiddleware as any, requireAdminOrCertManager as any, controller.issueCertificate);
-    router.get('/:id/reissue', sseAuthMiddleware as any, requireAdminOrCertManager as any, controller.reissueCertificate);
-    router.get('/:id/renew', sseAuthMiddleware as any, requireAdminOrCertManager as any, controller.renewCertificate);
+    // Certificate operations — now POST (return jobId, run in background)
+    router.post('/:id/issue', authMiddleware as any, requireAdminOrCertManager as any, controller.issueCertificate);
+    router.post('/:id/reissue', authMiddleware as any, requireAdminOrCertManager as any, controller.reissueCertificate);
+    router.post('/:id/renew', authMiddleware as any, requireAdminOrCertManager as any, controller.renewCertificate);
+    router.post('/:id/dry-run', authMiddleware as any, requireAdminOrCertManager as any, controller.dryRunCertificate);
 
     return router;
 };

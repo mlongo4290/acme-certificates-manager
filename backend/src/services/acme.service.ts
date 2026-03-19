@@ -242,7 +242,8 @@ export class AcmeService {
         directoryUrl: string,
         accountKey: any,
         domains: string[],
-        dnsProvider: any
+        dnsProvider: any,
+        dryRun = false
     ): Promise<CertificateResult> {
         // Get DNS provider instance once for reuse
         const providerType = dnsProvider.type || 'manual';
@@ -400,7 +401,30 @@ export class AcmeService {
                 throw new Error(`Authorization validation failed:\n  ${details}`);
             }
 
-            this.logger.info('All authorizations valid. Finalizing order...');
+            this.logger.info('All authorizations valid.');
+
+            if (dryRun) {
+                this.logger.info('Dry-run: skipping order finalization. Cleaning up DNS records...');
+                for (const challengeInfo of challenges) {
+                    try {
+                        await dnsProviderInstance.deleteTxtRecord(
+                            challengeInfo.domain,
+                            challengeInfo.dnsRecordName,
+                            dnsProvider.credentials
+                        );
+                        this.logger.info(`  ✓ Deleted DNS record for ${challengeInfo.domain}`);
+                    } catch (error: any) {
+                        this.logger.warn(`  ⚠ Failed to delete DNS record for ${challengeInfo.domain}: ${error.message}`);
+                    }
+                }
+                this.logger.info('Dry-run completed successfully. DNS challenge validated, certificate not issued.');
+                return {
+                    success: true,
+                    message: 'Dry-run completed: DNS challenge validated successfully. Certificate not issued.'
+                };
+            }
+
+            this.logger.info('Finalizing order...');
             let finalizedOrder = await client.finalize(order.content.finalize, {
                 csr: csr.toString("base64url")
             });

@@ -18,6 +18,7 @@ import { RenewalCalendarComponent } from './pages/renewal-calendar/renewal-calen
 import { SshKeysComponent } from './pages/ssh-keys/ssh-keys';
 import { WebhooksComponent } from './pages/webhooks/webhooks';
 import { ConfigExportComponent } from './pages/config-export/config-export';
+import { JobsComponent } from './pages/jobs/jobs';
 
 export const appRoutes: Routes = [
     {
@@ -39,6 +40,7 @@ export const appRoutes: Routes = [
             { path: 'admin/auth-providers', component: AuthProvidersComponent, canActivate: [adminGuard] },
             { path: 'admin/users', component: UsersComponent, canActivate: [adminGuard] },
             { path: 'admin/config-export', component: ConfigExportComponent, canActivate: [adminGuard] },
+            { path: 'jobs', component: JobsComponent, canActivate: [certManagerGuard] },
             { path: 'pages', loadChildren: () => import('./pages/pages.routes') }
         ]
     },

@@ -35,3 +35,24 @@
         font-family: var(--font-sans);
     }
 }
+/* Dashboard grid widget cards: make p-card fill the gridster item and allow content to scroll */
+ktd-grid-item p-card,
+ktd-grid-item .p-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+}
+
+ktd-grid-item .p-card-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+ktd-grid-item .p-card-content {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}

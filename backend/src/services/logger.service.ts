@@ -1,7 +1,7 @@
-import { Response } from 'express';
 import path from 'path';
 import winston from 'winston';
 import DailyRotateFile = require('winston-daily-rotate-file');
+import { jobStorage } from './jobManager.service';
 
 // Configuration from environment variables
 const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
@@ -13,43 +13,15 @@ const LOG_MAX_FILES = process.env.LOG_MAX_FILES;
 const LOG_DATE_PATTERN = process.env.LOG_DATE_PATTERN || 'YYYY-MM-DD';
 
 /**
- * SSE Manager for streaming logs to clients
- * Handles direct SSE communication bypassing winston's async nature
+ * SSE Manager — routes log messages to the current job via AsyncLocalStorage.
+ * Each parallel job runs in its own async context, so messages are never mixed.
  */
 class SSEManager {
-    private static sseResponse: Response | null = null;
-
-    static setSSEResponse(res: Response | null) {
-        this.sseResponse = res;
-    }
-
-    static clearSSEResponse() {
-        this.sseResponse = null;
-    }
-
     static sendMessage(message: string, level: string, context?: string) {
-        if (this.sseResponse && !this.sseResponse.destroyed && !this.sseResponse.writableEnded) {
-            try {
-                // Format message with context if available
-                const formattedMessage = context ? `[${context}] ${message}` : message;
-
-                const sseData = JSON.stringify({
-                    type: 'progress',
-                    message: formattedMessage,
-                    level: level
-                });
-
-                this.sseResponse.write(`data: ${sseData}\n\n`);
-
-                // Force flush immediately for real-time updates
-                /*if (typeof (this.sseResponse as any).flush === 'function') {
-                    (this.sseResponse as any).flush();
-                }*/
-            } catch (error) {
-                // SSE connection might be closed
-                console.error('SSE write error:', error);
-                this.sseResponse = null;
-            }
+        const callback = jobStorage.getStore();
+        if (callback) {
+            const text = context ? `[${context}] ${message}` : message;
+            callback(level, text);
         }
     }
 }
@@ -120,20 +92,6 @@ export class Logger {
 
     constructor(context?: string) {
         this.context = context;
-    }
-
-    /**
-     * Set SSE response for streaming logs to client
-     */
-    static setSSEResponse(res: Response | null) {
-        SSEManager.setSSEResponse(res);
-    }
-
-    /**
-     * Clear SSE response
-     */
-    static clearSSEResponse() {
-        SSEManager.clearSSEResponse();
     }
 
     /**

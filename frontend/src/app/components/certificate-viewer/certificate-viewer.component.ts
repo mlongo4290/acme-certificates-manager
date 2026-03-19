@@ -1,6 +1,6 @@
 import { CommonModule, formatDate } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, inject, Input, OnInit } from '@angular/core';
+import { Component, inject, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { X509Certificate } from '@peculiar/x509';
 import { BadgeModule } from 'primeng/badge';
@@ -58,7 +58,7 @@ interface CertificateInfo {
     templateUrl: './certificate-viewer.component.html',
     styleUrl: '../../../assets/certificate-viewer.scss'
 })
-export class CertificateViewerComponent implements OnInit {
+export class CertificateViewerComponent implements OnInit, OnChanges {
     public translateService = inject(TranslateService);
     private http = inject(HttpClient);
 
@@ -69,6 +69,14 @@ export class CertificateViewerComponent implements OnInit {
 
     ngOnInit() {
         this.parseCertificateChain();
+    }
+
+    ngOnChanges(changes: SimpleChanges) {
+        if (changes['certificatePem'] && !changes['certificatePem'].firstChange) {
+            this.certificates = [];
+            this.activeTabIndex = 0;
+            this.parseCertificateChain();
+        }
     }
 
     onTabChange(event: any) {

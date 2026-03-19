@@ -70,7 +70,12 @@
                         </ng-template>
                     </p-columnFilter>
                 </th>
-                <th [style]="{ 'min-width': '180px' }">{{ 'certificates.caAndAccount' | translate }}</th>
+                <th pSortableColumn="certificateAuthority" [style]="{ 'min-width': '180px' }">
+                    {{ 'certificates.caAndAccount' | translate }}
+                    <p-sortIcon field="certificateAuthority" />
+                    <p-columnFilter type="text" field="certificateAuthority" display="menu" matchMode="contains"
+                        [showMatchModes]="true" [showOperator]="true" [showAddButton]="true" />
+                </th>
                 <th pSortableColumn="expiryDate" [style]="{ 'min-width': '180px' }">
                     {{ 'certificates.expiryDate' | translate }}
                     <p-sortIcon field="expiryDate" />
@@ -197,60 +202,27 @@
                     </div>
                 </td>
                 <td>
-                    <div class="flex gap-2">
+                    <div class="flex gap-1">
                         @if (cert.status === 'pending' || cert.status === 'error') {
-                        <!-- Issue button for pending/error certificates -->
                         <p-button icon="pi pi-play" [pTooltip]="'certificates.actions.issue' | translate"
-                            (click)="issueCertificate(cert)" [disabled]="saving" severity="info" [text]="true" />
+                            tooltipPosition="top" (click)="issueCertificate(cert)"
+                            [disabled]="saving || isCertBusy(cert._id!)" severity="info" [text]="true" />
                         } @else if (cert.status === 'expired') {
-                        <!-- Renew button for expired certificates -->
                         <p-button icon="pi pi-refresh" [pTooltip]="'certificates.actions.renew' | translate"
-                            (click)="renewCertificate(cert)" [disabled]="saving" severity="success" [text]="true" />
+                            tooltipPosition="top" (click)="renewCertificate(cert)"
+                            [disabled]="saving || isCertBusy(cert._id!)" severity="success" [text]="true" />
                         } @else if (cert.modified) {
-                        <!-- Reissue button for modified certificates -->
                         <p-button icon="pi pi-file-edit" [pTooltip]="'certificates.actions.reissue' | translate"
-                            (click)="reissueCertificate(cert)" [disabled]="saving" severity="warn" [text]="true" />
+                            tooltipPosition="top" (click)="reissueCertificate(cert)"
+                            [disabled]="saving || isCertBusy(cert._id!)" severity="warn" [text]="true" />
                         } @else {
-                        <!-- Renew button for valid, unmodified certificates -->
                         <p-button icon="pi pi-refresh" [pTooltip]="'certificates.actions.renew' | translate"
-                            (click)="renewCertificate(cert)" [disabled]="saving" severity="success" [text]="true" />
+                            tooltipPosition="top" (click)="renewCertificate(cert)"
+                            [disabled]="saving || isCertBusy(cert._id!)" severity="success" [text]="true" />
                         }
-
-                        @if (cert.postIssueScripts && cert.postIssueScripts.length > 0) {
-                        <p-button icon="pi pi-bolt" [pTooltip]="'certificates.hints.runScripts' | translate"
-                            tooltipPosition="top" (click)="runPostIssuanceScripts(cert)" [disabled]="saving"
-                            severity="secondary" [text]="true" />
-                        }
-
-                        @if (cert.status === 'valid' || cert.status === 'expired') {
-                        <!-- View certificate details button -->
-                        <p-button icon="pi pi-info-circle" [pTooltip]="'certificates.actions.viewDetails' | translate"
-                            (click)="showCertificateDetails(cert)" [disabled]="saving" severity="info" [text]="true" />
-
-                        <!-- Download button with dropdown menu -->
-                        <p-button icon="pi pi-download" [pTooltip]="'certificates.actions.download' | translate"
-                            (click)="showDownloadMenu($event, cert)" [disabled]="saving" severity="secondary"
-                            [text]="true" />
-
-                        <!-- Export ZIP -->
-                        <p-button icon="pi pi-file-export" [pTooltip]="'certificates.actions.exportZip' | translate"
-                            (click)="exportSingleCertZip(cert)" [disabled]="saving" severity="secondary"
-                            [text]="true" />
-                        }
-
-                        <p-button icon="pi pi-history" [pTooltip]="'certificates.viewLogs' | translate"
-                            (click)="showLogs(cert)" [disabled]="saving" severity="secondary" [text]="true" />
-
-                        <p-button [icon]="cert.enabled === false ? 'pi pi-play-circle' : 'pi pi-pause-circle'"
-                            [pTooltip]="(cert.enabled === false ? 'certificates.actions.enable' : 'certificates.actions.disable') | translate"
-                            (click)="toggleEnabled(cert)" [disabled]="saving"
-                            [severity]="cert.enabled === false ? 'success' : 'warn'" [text]="true" />
-
-                        <p-button icon="pi pi-pencil" [pTooltip]="'certificates.edit' | translate"
-                            (click)="showEditDialog(cert)" [disabled]="saving" severity="secondary" [text]="true" />
-
-                        <p-button icon="pi pi-trash" [pTooltip]="'common.delete' | translate"
-                            (click)="deleteCertificate(cert)" [disabled]="saving" severity="danger" [text]="true" />
+                        <p-button icon="pi pi-ellipsis-v" [pTooltip]="'common.actions' | translate"
+                            tooltipPosition="top" (click)="showRowMenu($event, cert)"
+                            [disabled]="saving" severity="secondary" [text]="true" />
                     </div>
                 </td>
             </tr>
@@ -266,7 +238,7 @@
     </p-table>
 
     <!-- Download menu - single instance outside the table -->
-    <p-menu #downloadMenu [model]="downloadMenuItems" [popup]="true" />
+    <p-menu #rowMenu [model]="rowMenuItems" [popup]="true" appendTo="body" />
 </div>
 
 
@@ -672,37 +644,11 @@
     </p-stepper>
 </p-dialog>
 
-<!-- Progress Dialog for Certificate Issuance -->
-<p-dialog [(visible)]="displayProgressDialog" [header]="'certificates.issuing' | translate" [modal]="true"
-    [closable]="!saving" [draggable]="false" [resizable]="false" [style]="{ width: '600px', maxHeight: '80vh' }">
-    <div class="flex flex-col gap-4 py-4">
-        @if (saving) {
-        <div class="flex justify-center mb-2">
-            <p-progressSpinner styleClass="w-1 h-1" strokeWidth="4" />
-        </div>
-        }
-        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 max-h-96 overflow-y-auto" #progressContainer>
-            @for(message of progressMessages; track message) {
-            <div class="text-sm font-mono mb-1 text-gray-700 dark:text-gray-300"
-                [class.text-red-600]="message.startsWith('✗')" [class.text-green-600]="message.startsWith('✓')"
-                [class.text-yellow-600]="message.startsWith('⚠')">
-                {{ message }}
-            </div>
-            }
-        </div>
-    </div>
-
-    <ng-template #footer>
-        @if (!saving) {
-        <p-button [label]="'common.close' | translate" icon="pi pi-times" (click)="displayProgressDialog = false"
-            severity="secondary" />
-        }
-    </ng-template>
-</p-dialog>
 
 <!-- Certificate Viewer Dialog -->
 <p-dialog [(visible)]="displayCertificateViewer" [header]="'certificates.actions.viewDetails' | translate"
-    [modal]="true" [style]="{width: '90vw', height: '85vh'}" [dismissableMask]="true" [maximizable]="true">
+    [modal]="true" [style]="{width: '90vw', height: '85vh'}" [dismissableMask]="true" [maximizable]="true"
+    (onHide)="selectedCertificatePem = null">
 
     @if(selectedCertificatePem) {
     <app-certificate-viewer [certificatePem]="selectedCertificatePem">

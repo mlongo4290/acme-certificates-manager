@@ -52,7 +52,7 @@ export class SshKeyService {
     private http = inject(HttpClient);
     private apiUrl = `${environment.apiUrl}/ssh-keys`;
 
-    getAllKeys(page: number = 0, limit: number = 10, sortField: string = 'name', sortOrder: number = 1, filters: any = {}): Observable<{ data: SshKey[], totalRecords: number }> {
+    getAllKeys(page: number = 0, limit: number = 0, sortField: string = 'name', sortOrder: number = 1, filters: any = {}): Observable<{ data: SshKey[], totalRecords: number }> {
         return this.http.get<{ data: SshKey[], totalRecords: number }>(this.apiUrl);
     }
 

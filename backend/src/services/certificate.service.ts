@@ -44,7 +44,8 @@ export class CertificateService {
     /**
      * Issue or renew a certificate
      */
-    async issueCertificate(certificateId: string) {
+    async issueCertificate(certificateId: string, options: { dryRun?: boolean } = {}) {
+        const { dryRun = false } = options;
         const certificate = await Certificate.findById(certificateId);
         if (!certificate) {
             throw new Error('Certificate not found');
@@ -54,8 +55,10 @@ export class CertificateService {
         const certLogger = this.logger.child(`Certificate ${certificate.domain}`);
 
         try {
-            certificate.status = 'pending';
-            await certificate.save();
+            if (!dryRun) {
+                certificate.status = 'pending';
+                await certificate.save();
+            }
 
             certLogger.info('Starting certificate issuance...');
 
@@ -176,39 +179,44 @@ export class CertificateService {
                     directoryUrl,
                     accountKey,
                     domains,
-                    dnsProvider!
+                    dnsProvider!,
+                    dryRun
                 );
 
                 if (!result.success) {
                     throw new Error(result.message);
                 }
 
-                // Encrypt and store certificate data in MongoDB
-                certificate.certificate = result.certificate!;
-                certificate.privateKey = encrypt(result.privateKey!); // Encrypt private key
-                certificate.fullChain = result.fullChain!;
-                certificate.status = 'valid';
-                certificate.issueDate = new Date();
-                certificate.lastRenewalAttempt = new Date();
-                certificate.lastRenewalStatus = 'success';
+                if (!dryRun) {
+                    // Encrypt and store certificate data in MongoDB
+                    certificate.certificate = result.certificate!;
+                    certificate.privateKey = encrypt(result.privateKey!); // Encrypt private key
+                    certificate.fullChain = result.fullChain!;
+                    certificate.status = 'valid';
+                    certificate.issueDate = new Date();
+                    certificate.lastRenewalAttempt = new Date();
+                    certificate.lastRenewalStatus = 'success';
 
-                await certificate.save();
+                    await certificate.save();
 
-                certLogger.success('Certificate stored in database!');
+                    certLogger.success('Certificate stored in database!');
+                }
             } else {
                 throw new Error(`Challenge type ${certificate.challengeType} not yet implemented`);
             }
 
-            // Run post-issuance script (new structure)
-            await this.runPostIssueScript(certificate);
+            if (!dryRun) {
+                // Run post-issuance script (new structure)
+                await this.runPostIssueScript(certificate);
 
-            // Send success notification
-            const expiryDate = getCertificateExpiryDate(certificate.certificate);
-            await notificationService.sendNotification('certificate_issued_success', {
-                certificateId: certificateId,
-                domain: certificate.domain,
-                expiryDate: expiryDate?.toISOString(),
-            }).catch(err => certLogger.error(`Failed to send notification: ${err.message}`));
+                // Send success notification
+                const expiryDate = getCertificateExpiryDate(certificate.certificate!);
+                await notificationService.sendNotification('certificate_issued_success', {
+                    certificateId: certificateId,
+                    domain: certificate.domain,
+                    expiryDate: expiryDate?.toISOString(),
+                }).catch(err => certLogger.error(`Failed to send notification: ${err.message}`));
+            }
 
             return {
                 success: true,
@@ -216,17 +224,19 @@ export class CertificateService {
             };
         } catch (error: any) {
             certLogger.error(`Error: ${error.message}`);
-            certificate.status = 'error';
-            certificate.lastRenewalAttempt = new Date();
-            certificate.lastRenewalStatus = 'failed';
-            await certificate.save();
+            if (!dryRun) {
+                certificate.status = 'error';
+                certificate.lastRenewalAttempt = new Date();
+                certificate.lastRenewalStatus = 'failed';
+                await certificate.save();
 
-            // Send failure notification
-            await notificationService.sendNotification('certificate_issued_failed', {
-                certificateId: certificateId,
-                domain: certificate.domain,
-                error: error.message,
-            }).catch(err => certLogger.error(`Failed to send notification: ${err.message}`));
+                // Send failure notification
+                await notificationService.sendNotification('certificate_issued_failed', {
+                    certificateId: certificateId,
+                    domain: certificate.domain,
+                    error: error.message,
+                }).catch(err => certLogger.error(`Failed to send notification: ${err.message}`));
+            }
 
             throw error;
         }

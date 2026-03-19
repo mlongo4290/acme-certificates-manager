@@ -13,6 +13,7 @@ if (process.env.NODE_ENV !== 'production') {
 import { initializePassport } from './config/passport';
 import { AgendaController } from './controllers/agenda.controller';
 import { CertificateController } from './controllers/certificate.controller';
+import { JobController } from './controllers/job.controller';
 import { DnsProviderController } from './controllers/dnsProvider.controller';
 import { authMiddleware } from './middleware/auth';
 import acmeAccountRoutes from './routes/acmeAccountRoutes';
@@ -24,6 +25,7 @@ import apiTokenRoutes from './routes/apiTokenRoutes';
 import authProviderRoutes from './routes/authProviderRoutes';
 import authRoutes from './routes/authRoutes';
 import { createCertificateRouter } from './routes/certificate.routes';
+import { createJobRouter } from './routes/job.routes';
 import { createDnsProviderRouter } from './routes/dnsProvider.routes';
 import notificationLogRoutes from './routes/notificationLog.routes';
 import postIssueScriptRoutes from './routes/postIssueScript.routes';
@@ -77,6 +79,7 @@ schedulerService.start();
 
 // Initialize controller
 const certificateController = new CertificateController(certificateService, schedulerService);
+const jobController = new JobController();
 const dnsProviderController = new DnsProviderController();
 const agendaController = new AgendaController(schedulerService);
 
@@ -94,6 +97,7 @@ app.use('/api/acme-accounts', acmeAccountRoutes);
 app.use('/api/dns-providers', authMiddleware as any, createDnsProviderRouter(dnsProviderController));
 // Certificate routes handle auth internally (some endpoints like SSE need special auth)
 app.use('/api/certificates', createCertificateRouter(certificateController));
+app.use('/api/jobs', createJobRouter(jobController));
 app.use('/api/activity-logs', activityLogRoutes);
 app.use('/api/agenda', createAgendaRoutes(agendaController));
 

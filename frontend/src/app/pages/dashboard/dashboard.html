@@ -1,19 +1,122 @@
-<div class="grid grid-cols-12 gap-6 mb-2">
-    <!-- Stats Cards Row -->
-    <app-stats-widget class="contents" />
+<div class="flex justify-end items-center mb-2 gap-2">
+    @if(editMode) {
+        <span class="text-sm text-muted-color" translate>dashboard.editModeHint</span>
+    }
+    <p-button [icon]="editMode ? 'pi pi-check' : 'pi pi-pencil'"
+              [label]="(editMode ? 'dashboard.doneEditing' : 'dashboard.editDashboard') | translate"
+              [severity]="editMode ? 'success' : 'secondary'"
+              [text]="true" size="small" (onClick)="editMode = !editMode" />
+    <p-button icon="pi pi-sliders-h" [label]="'dashboard.customize' | translate"
+              [text]="true" severity="secondary" size="small" (onClick)="showCustomize = true" />
 </div>
-<div class="grid grid-cols-12 gap-6 mb-2">
-    <app-alerts-widget class="contents" />
-    <app-dns-providers-status-widget class="contents" />
-    <app-expiring-certificates-widget class="contents" />
-</div>
-<div class="grid grid-cols-12 gap-6 mb-2">
-    <app-ca-status-widget class="contents" />
-    <app-auto-renewal-stats-widget class="contents" />
-</div>
-<div class="grid grid-cols-12 gap-6 mb-2">
-    <app-certificate-chart-widget class="contents" />
-</div>
-<div class="grid grid-cols-12 gap-6 mb-2">
-    <app-recent-activity-widget class="contents" />
-</div>
+
+<ktd-grid [cols]="cols" [rowHeight]="rowHeight" [layout]="visibleLayout"
+          [compactType]="'vertical'" [gap]="24"
+          (layoutUpdated)="onLayoutUpdated($event)">
+    @for(item of visibleLayout; track trackById(0, item)) {
+        <ktd-grid-item [id]="item.id" [draggable]="editMode" [resizable]="editMode" class="relative">
+            @switch(item.id) {
+                @case('stats') { <app-stats-widget class="h-full w-full block" /> }
+                @case('alerts') { <app-alerts-widget class="h-full w-full block" /> }
+                @case('dns-providers') { <app-dns-providers-status-widget class="h-full w-full block" /> }
+                @case('expiring-certs') { <app-expiring-certificates-widget class="h-full w-full block" /> }
+                @case('ca-status') { <app-ca-status-widget class="h-full w-full block" /> }
+                @case('auto-renewal') { <app-auto-renewal-stats-widget class="h-full w-full block" /> }
+                @case('recent-jobs') { <app-recent-jobs-widget class="h-full w-full block" /> }
+                @case('chart-ca') { <app-ca-chart-widget class="h-full w-full block" /> }
+                @case('chart-challenge') { <app-challenge-chart-widget class="h-full w-full block" /> }
+                @case('chart-dns') { <app-dns-chart-widget class="h-full w-full block" /> }
+                @case('recent-activity') { <app-recent-activity-widget class="h-full w-full block" /> }
+            }
+            @if(editMode) {
+                <div ktdGridItemDragHandle
+                     class="absolute top-0 left-0 right-0 h-6 flex items-center justify-center cursor-grab bg-surface-200 dark:bg-surface-600 opacity-70 rounded-t-lg z-10">
+                    <i class="pi pi-arrows-alt text-xs text-muted-color"></i>
+                </div>
+            }
+        </ktd-grid-item>
+    }
+</ktd-grid>
+
+<p-drawer [(visible)]="showCustomize" position="right" [header]="'dashboard.customize' | translate" styleClass="!w-80">
+    <div class="flex flex-col gap-4">
+        <p class="text-sm text-muted-color m-0" translate>dashboard.customizeHint</p>
+
+        <!-- Edit mode toggle -->
+        <div class="flex justify-between items-center p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
+            <div>
+                <div class="text-sm font-medium" translate>dashboard.editMode</div>
+                <div class="text-xs text-muted-color" translate>dashboard.editModeDesc</div>
+            </div>
+            <p-toggleswitch [(ngModel)]="editMode" />
+        </div>
+
+        <p-divider />
+        <div class="flex flex-col gap-3">
+            <div class="text-xs font-semibold text-muted-color uppercase tracking-wider"
+                translate>dashboard.sections.infoCards</div>
+            <div class="flex justify-between items-center">
+                <span class="text-sm" translate>dashboard.widgets.alerts</span>
+                <p-toggleswitch [ngModel]="visibility['alerts']" (ngModelChange)="toggleWidget('alerts')" />
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-sm" translate>dashboard.widgets.dnsProviders</span>
+                <p-toggleswitch [ngModel]="visibility['dns-providers']" (ngModelChange)="toggleWidget('dns-providers')" />
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-sm" translate>dashboard.widgets.expiringCerts</span>
+                <p-toggleswitch [ngModel]="visibility['expiring-certs']" (ngModelChange)="toggleWidget('expiring-certs')" />
+            </div>
+        </div>
+
+        <p-divider />
+        <div class="flex flex-col gap-3">
+            <div class="text-xs font-semibold text-muted-color uppercase tracking-wider"
+                translate>dashboard.sections.stats</div>
+            <div class="flex justify-between items-center">
+                <span class="text-sm" translate>dashboard.widgets.caStatus</span>
+                <p-toggleswitch [ngModel]="visibility['ca-status']" (ngModelChange)="toggleWidget('ca-status')" />
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-sm" translate>dashboard.widgets.autoRenewal</span>
+                <p-toggleswitch [ngModel]="visibility['auto-renewal']" (ngModelChange)="toggleWidget('auto-renewal')" />
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-sm" translate>dashboard.widgets.recentJobs</span>
+                <p-toggleswitch [ngModel]="visibility['recent-jobs']" (ngModelChange)="toggleWidget('recent-jobs')" />
+            </div>
+        </div>
+
+        <p-divider />
+        <div class="flex flex-col gap-3">
+            <div class="text-xs font-semibold text-muted-color uppercase tracking-wider"
+                translate>dashboard.sections.charts</div>
+            <div class="flex justify-between items-center">
+                <span class="text-sm" translate>dashboard.widgets.chartCaDistribution</span>
+                <p-toggleswitch [ngModel]="visibility['chart-ca']" (ngModelChange)="toggleWidget('chart-ca')" />
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-sm" translate>dashboard.widgets.chartChallengeTypes</span>
+                <p-toggleswitch [ngModel]="visibility['chart-challenge']" (ngModelChange)="toggleWidget('chart-challenge')" />
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-sm" translate>dashboard.widgets.chartDnsDistribution</span>
+                <p-toggleswitch [ngModel]="visibility['chart-dns']" (ngModelChange)="toggleWidget('chart-dns')" />
+            </div>
+        </div>
+
+        <p-divider />
+        <div class="flex flex-col gap-3">
+            <div class="text-xs font-semibold text-muted-color uppercase tracking-wider"
+                translate>dashboard.sections.activity</div>
+            <div class="flex justify-between items-center">
+                <span class="text-sm" translate>dashboard.widgets.recentActivity</span>
+                <p-toggleswitch [ngModel]="visibility['recent-activity']" (ngModelChange)="toggleWidget('recent-activity')" />
+            </div>
+        </div>
+
+        <p-divider />
+        <p-button [label]="'dashboard.resetConfig' | translate" severity="secondary" [text]="true" size="small"
+            icon="pi pi-refresh" (onClick)="resetConfig()" />
+    </div>
+</p-drawer>

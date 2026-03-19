@@ -35,6 +35,7 @@
         "delete": "Elimina",
         "create": "Crea",
         "close": "Chiudi",
+        "minimize": "Minimizza",
         "actions": "Azioni",
         "name": "Nome",
         "status": "Stato",
@@ -62,6 +63,29 @@
         "security": "Sicurezza",
         "swaggerDocs": "Documentazione API",
         "configExport": "Esporta / Importa Config"
+    },
+    "jobs": {
+        "title": "Job",
+        "description": "Operazioni sui certificati in corso e completate di recente",
+        "running": "in corso",
+        "completed": "completati",
+        "empty": "Nessun job trovato",
+        "dismiss": "Rimuovi",
+        "dismissAll": "Rimuovi tutti",
+        "waitingForOutput": "In attesa di output...",
+        "completedAt": "Completato il",
+        "viewAll": "Vedi tutti i job",
+        "type": {
+            "issue": "Emissione",
+            "renew": "Rinnovo",
+            "reissue": "Riemissione",
+            "dry-run": "Dry Run"
+        },
+        "status": {
+            "running": "In corso",
+            "success": "Successo",
+            "error": "Errore"
+        }
     },
     "auth": {
         "login": "Accedi",
@@ -300,7 +324,7 @@
     "dashboard": {
         "title": "Dashboard",
         "charts": {
-            "summary": "Riepilogo certificati",
+            "caDistribution": "Distribuzione per CA",
             "challengeTypes": "Tipi di challenge",
             "dnsDistribution": "Distribuzione provider DNS"
         },
@@ -344,7 +368,38 @@
             "noAlerts": "Nessun avviso al momento",
             "certsWithoutRenewal": "Certificati senza rinnovo automatico",
             "unregisteredAccounts": "Account ACME non registrati"
-        }
+        },
+        "recentJobs": {
+            "title": "Operazioni recenti",
+            "viewAll": "Vedi tutte",
+            "empty": "Nessuna operazione recente"
+        },
+        "customize": "Personalizza",
+        "customizeHint": "Attiva o disattiva i widget. Le modifiche vengono salvate automaticamente.",
+        "resetConfig": "Ripristina impostazioni predefinite",
+        "sections": {
+            "infoCards": "Schede informative",
+            "stats": "Statistiche",
+            "charts": "Grafici",
+            "activity": "Attività"
+        },
+        "widgets": {
+            "alerts": "Avvisi e avvertenze",
+            "dnsProviders": "Provider DNS",
+            "expiringCerts": "Certificati in scadenza",
+            "caStatus": "Autorità di certificazione",
+            "autoRenewal": "Statistiche rinnovo automatico",
+            "recentJobs": "Operazioni recenti",
+            "chartCaDistribution": "Grafico distribuzione per CA",
+            "chartChallengeTypes": "Grafico tipi di challenge",
+            "chartDnsDistribution": "Grafico distribuzione DNS",
+            "recentActivity": "Attività recente"
+        },
+        "editDashboard": "Modifica dashboard",
+        "doneEditing": "Fatto",
+        "editMode": "Modalità modifica",
+        "editModeDesc": "Trascina e ridimensiona i widget",
+        "editModeHint": "Trascina i widget per riorganizzarli, trascina gli angoli per ridimensionarli"
     },
     "certificates": {
         "title": "Certificati",
@@ -365,6 +420,7 @@
         "issueConfirm": "Conferma emissione certificato",
         "reissueConfirm": "Conferma riemissione certificato",
         "renewConfirm": "Conferma rinnovo certificato",
+        "dryRunConfirm": "Eseguire una validazione dry-run per '{{domain}}'? I record DNS verranno creati e validati ma nessun certificato sarà emesso.",
         "details": "Dettagli certificato",
         "status": {
             "valid": "Valido",
@@ -395,6 +451,10 @@
         "tags": "Tag",
         "addTag": "Aggiungi tag...",
         "filterByTag": "Filtra per tag",
+        "jobs": {
+            "running": "job in corso",
+            "done": "Tutti i job completati"
+        },
         "bulk": {
             "selected": "selezionati",
             "enabled": "{{count}} certificati abilitati",
@@ -419,7 +479,8 @@
             "exportZip": "Esporta come ZIP",
             "viewDetails": "Visualizza dettagli certificato",
             "enable": "Abilita certificato",
-            "disable": "Disabilita certificato"
+            "disable": "Disabilita certificato",
+            "dryRun": "Dry Run (valida challenge DNS)"
         },
         "confirm": {
             "delete": "Sei sicuro di voler eliminare il certificato per '{{domain}}'?",

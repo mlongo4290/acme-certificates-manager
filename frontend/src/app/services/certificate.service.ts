@@ -77,7 +77,7 @@ export class CertificateService {
     private http = inject(HttpClient);
     private apiUrl = `${environment.apiUrl}/certificates`;
 
-    getAllCertificates(page: number = 0, limit: number = 10, sortField: string = 'createdAt', sortOrder: number = -1, filters: any = {}): Observable<{ data: Certificate[], totalRecords: number }> {
+    getAllCertificates(page: number = 0, limit: number = 0, sortField: string = 'createdAt', sortOrder: number = -1, filters: any = {}): Observable<{ data: Certificate[], totalRecords: number }> {
         let params: any = {
             page: page.toString(),
             limit: limit.toString(),
@@ -113,12 +113,20 @@ export class CertificateService {
         return this.http.delete<{ message: string }>(`${this.apiUrl}/${id}`);
     }
 
-    renewCertificate(id: string): Observable<RenewResult> {
-        return this.http.post<RenewResult>(`${this.apiUrl}/${id}/renew`, {});
+    renewCertificate(id: string): Observable<{ jobId: string }> {
+        return this.http.post<{ jobId: string }>(`${this.apiUrl}/${id}/renew`, {});
     }
 
-    issueCertificate(id: string): Observable<RenewResult> {
-        return this.http.post<RenewResult>(`${this.apiUrl}/${id}/issue`, {});
+    issueCertificate(id: string): Observable<{ jobId: string }> {
+        return this.http.post<{ jobId: string }>(`${this.apiUrl}/${id}/issue`, {});
+    }
+
+    reissueCertificate(id: string, domain: string, additionalDomains: string[]): Observable<{ jobId: string }> {
+        return this.http.post<{ jobId: string }>(`${this.apiUrl}/${id}/reissue`, { domain, additionalDomains });
+    }
+
+    dryRunCertificate(id: string): Observable<{ jobId: string }> {
+        return this.http.post<{ jobId: string }>(`${this.apiUrl}/${id}/dry-run`, {});
     }
 
     testPostIssueScript(id: string): Observable<TestScriptResult> {

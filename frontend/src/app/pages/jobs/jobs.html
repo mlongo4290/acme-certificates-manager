@@ -1,0 +1,113 @@
+<div class="card">
+    <p-toast />
+
+    <div class="flex items-center justify-between mb-5">
+        <div>
+            <h2 class="mb-1">{{ 'jobs.title' | translate }}</h2>
+            <p class="text-surface-500 dark:text-surface-400 text-sm">{{ 'jobs.description' | translate }}</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <p-button icon="pi pi-refresh" [label]="'activityLog.refresh' | translate" severity="secondary" [text]="true"
+                (onClick)="loadJobs()" [loading]="loading" />
+            @if (completedCount > 0) {
+            <p-button icon="pi pi-trash" [label]="'jobs.dismissAll' | translate" severity="secondary"
+                (onClick)="dismissAll()" />
+            }
+        </div>
+    </div>
+
+    <!-- Summary chips -->
+    @if (!loading) {
+    <div class="flex items-center gap-3 mb-5">
+        @if (runningCount > 0) {
+        <span class="flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full text-sm text-blue-700 dark:text-blue-300">
+            <i class="pi pi-spin pi-spinner text-xs"></i>
+            {{ runningCount }} {{ 'jobs.running' | translate }}
+        </span>
+        }
+        @if (completedCount > 0) {
+        <span class="flex items-center gap-2 px-3 py-1.5 bg-surface-100 dark:bg-surface-700 rounded-full text-sm text-surface-600 dark:text-surface-300">
+            <i class="pi pi-check text-xs"></i>
+            {{ completedCount }} {{ 'jobs.completed' | translate }}
+        </span>
+        }
+        @if (jobs.length === 0) {
+        <span class="text-surface-400 text-sm italic">{{ 'jobs.empty' | translate }}</span>
+        }
+    </div>
+    }
+
+    <!-- Job cards -->
+    <div class="flex flex-col gap-3">
+        @for (job of jobs; track job.data._id) {
+        <div class="border border-surface-200 dark:border-surface-700 rounded-xl overflow-hidden">
+            <!-- Card header -->
+            <div class="flex items-center gap-3 px-4 py-3 bg-surface-50 dark:bg-surface-800 cursor-pointer hover:bg-surface-100 dark:hover:bg-surface-700/60 transition-colors"
+                (click)="job.collapsed = !job.collapsed">
+                <!-- Type icon -->
+                <div class="w-8 h-8 rounded-full flex items-center justify-center"
+                    [class.bg-blue-100]="job.data.status === 'running'"
+                    [class.bg-green-100]="job.data.status === 'success'"
+                    [class.bg-red-100]="job.data.status === 'error'"
+                    [class.dark:bg-blue-900/30]="job.data.status === 'running'"
+                    [class.dark:bg-green-900/30]="job.data.status === 'success'"
+                    [class.dark:bg-red-900/30]="job.data.status === 'error'">
+                    @if (job.streaming) {
+                    <i class="pi pi-spin pi-spinner text-blue-500 text-sm"></i>
+                    } @else {
+                    <i [class]="getTypeIcon(job.data.type)"
+                        [class.text-blue-500]="job.data.status === 'running'"
+                        [class.text-green-600]="job.data.status === 'success'"
+                        [class.text-red-500]="job.data.status === 'error'"
+                        class="text-sm"></i>
+                    }
+                </div>
+
+                <!-- Domain + type -->
+                <div class="flex-1 min-w-0">
+                    <div class="font-semibold text-sm truncate">{{ job.data.certDomain }}</div>
+                    <div class="text-xs text-surface-500 dark:text-surface-400 mt-0.5">
+                        {{ ('jobs.type.' + job.data.type) | translate }}
+                        &middot;
+                        {{ job.data.startedAt | date:'short':undefined:translate.getCurrentLang() }}
+                        @if (job.data.completedAt) {
+                        &middot; {{ ('jobs.completedAt' | translate) }}: {{ job.data.completedAt | date:'short':undefined:translate.getCurrentLang() }}
+                        }
+                    </div>
+                </div>
+
+                <!-- Status -->
+                <p-tag [value]="('jobs.status.' + job.data.status) | translate"
+                    [severity]="getStatusSeverity(job.data.status)" />
+
+                <!-- Actions -->
+                <div class="flex items-center gap-1" (click)="$event.stopPropagation()">
+                    @if (job.data.status !== 'running') {
+                    <p-button icon="pi pi-times" [text]="true" size="small" severity="secondary"
+                        [pTooltip]="'jobs.dismiss' | translate" tooltipPosition="top"
+                        (onClick)="dismiss(job)" />
+                    }
+                    <i [class]="job.collapsed ? 'pi pi-chevron-down' : 'pi pi-chevron-up'"
+                        class="text-surface-400 text-xs ml-1"></i>
+                </div>
+            </div>
+
+            <!-- Log panel -->
+            @if (!job.collapsed) {
+            <div class="px-4 py-3 bg-surface-950/5 dark:bg-surface-900/50 font-mono text-xs leading-relaxed max-h-72 overflow-y-auto">
+                @if (job.messages.length === 0) {
+                <span class="text-surface-400 italic">{{ 'jobs.waitingForOutput' | translate }}</span>
+                }
+                @for (msg of job.messages; track $index) {
+                <div class="mb-0.5 whitespace-pre-wrap"
+                    [class.text-red-500]="msg.startsWith('✗')"
+                    [class.text-green-600]="msg.startsWith('✓')"
+                    [class.text-yellow-500]="msg.startsWith('⚠')"
+                    [class.text-surface-500]="!msg.startsWith('✗') && !msg.startsWith('✓') && !msg.startsWith('⚠')">{{ msg }}</div>
+                }
+            </div>
+            }
+        </div>
+        }
+    </div>
+</div>
