@@ -32,7 +32,9 @@ export class AppTopbar implements OnInit, OnDestroy {
 
     ngOnInit() {
         this.jobSub = this.jobService.runningJobs$.subscribe(jobs => this.runningJobs = jobs);
-        this.jobService.syncFromBackend();
+        if (this.authService.isAuthenticated()) {
+            this.jobService.syncFromBackend();
+        }
     }
 
     ngOnDestroy() {
