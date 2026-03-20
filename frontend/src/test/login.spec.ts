@@ -93,7 +93,7 @@ describe('Login Component', () => {
                     id: '1',
                     username: 'testuser',
                     authProvider: 'local',
-                    role: 'ADMIN'
+                    isAdmin: true
                 }
             };
 
@@ -155,7 +155,7 @@ describe('Login Component', () => {
                     id: '1',
                     username: 'mfauser',
                     authProvider: 'local',
-                    role: 'CERT_MANAGER'
+                    isAdmin: false
                 }
             };
 

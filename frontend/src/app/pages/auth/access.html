@@ -14,8 +14,9 @@
                     </h1>
                     <span class="text-surface-600 dark:text-surface-400 mb-8">You do not have the necessary permisions.
                         Please contact admins.</span>
-                    <div class="col-span-12 mt-8 text-center">
+                    <div class="col-span-12 mt-8 flex gap-3 justify-center">
                         <p-button label="Go to Dashboard" routerLink="/" severity="warn" />
+                        <p-button label="Logout" icon="pi pi-sign-out" severity="secondary" [outlined]="true" (onClick)="logout()" />
                     </div>
                 </div>
             </div>

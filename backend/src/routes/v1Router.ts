@@ -9,11 +9,13 @@ export const createV1Router = (
     certificateController: CertificateController,
     dnsProviderController: DnsProviderController
 ) => {
-    const router = express.Router();
+    // strict: true so that /docs and /docs/ are distinct — needed for the trailing-slash redirect below
+    const router = express.Router({ strict: true });
 
-    // API Documentation
-    router.use('/docs', swaggerUi.serve);
-    router.get('/docs', swaggerUi.setup(swaggerSpec, {
+    // API Documentation — redirect /docs → /docs/ so relative asset URLs resolve correctly
+    router.get('/docs', (req, res) => res.redirect(`${req.baseUrl}/docs/`));
+    // serve is an array in v5, must be spread
+    router.use('/docs', ...swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
         customCss: '.swagger-ui .topbar { display: none }',
         customSiteTitle: 'ACME Certificate Manager API Docs'
     }));

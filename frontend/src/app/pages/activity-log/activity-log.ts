@@ -4,6 +4,7 @@ import { Component, inject, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { AuthService } from '../../services/auth.service';
 import { ButtonModule } from 'primeng/button';
 import { ButtonGroupModule } from 'primeng/buttongroup';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -50,6 +51,9 @@ export class ActivityLogComponent implements OnInit {
     private messageService = inject(MessageService);
     public translateService = inject(TranslateService);
     private adminUserService = inject(AdminUserService);
+    private authService = inject(AuthService);
+    isAdmin = () => this.authService.isAdmin();
+    hasPermission = (resource: string, level: 'read' | 'write') => this.authService.hasPermission(resource, level);
 
     activities: ActivityLog[] = [];
     loading = false;
@@ -79,7 +83,11 @@ export class ActivityLogComponent implements OnInit {
         return options.hour12 ? '12' : '24';
     }
 
-    ngOnInit() { this.loadUsers(); }
+    ngOnInit() {
+        if (this.isAdmin()) {
+            this.loadUsers();
+        }
+    }
 
     onLazyLoad(event: any) {
         this.loading = true;

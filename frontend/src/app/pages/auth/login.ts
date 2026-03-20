@@ -69,7 +69,8 @@ export class Login implements OnInit {
                         username: payload.username,
                         authProvider: payload.authProvider || 'local',
                         authProviderName: payload.authProviderName,
-                        role: payload.role
+                        isAdmin: payload.isAdmin === true,
+                        permissions: payload.permissions
                     });
                     this.authService.isAuthenticated.set(true);
                 } catch (error) {
@@ -94,7 +95,7 @@ export class Login implements OnInit {
                     .sort((a, b) => a.priority - b.priority);
 
                 this.externalProviders = providers
-                    .filter(p => p.type === 'oauth2' || p.type === 'azure-ad')
+                    .filter(p => p.type === 'azure-ad' || p.type === 'oidc')
                     .sort((a, b) => a.priority - b.priority);
             },
             error: (error) => {

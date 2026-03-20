@@ -3,9 +3,11 @@
     <p class="text-surface-600 dark:text-surface-400 mb-6">{{ 'webhooks.description' | translate }}</p>
 
     <div class="flex justify-content-between align-items-center mb-5 gap-3">
+        @if (hasPermission('webhooks', 'write')) {
         <p-button [label]="'webhooks.create' | translate" icon="pi pi-plus" (onClick)="showCreateDialog()"
             severity="primary">
         </p-button>
+        }
     </div>
 
     <!-- Webhooks Table -->
@@ -44,14 +46,18 @@
                         [severity]="webhook.enabled ? 'success' : 'secondary'" />
                 </td>
                 <td>
+                    @if (hasPermission('webhooks', 'write')) {
                     <p-button icon="pi pi-send" (onClick)="testWebhook(webhook)" [text]="true" severity="info"
                         size="small" [pTooltip]="'webhooks.test' | translate" />
+                    }
                     <p-button icon="pi pi-list" (onClick)="showLogs(webhook)" [text]="true" severity="secondary"
                         size="small" [pTooltip]="'webhooks.logs' | translate" />
+                    @if (hasPermission('webhooks', 'write')) {
                     <p-button icon="pi pi-pencil" (onClick)="editWebhook(webhook)" [text]="true" severity="secondary"
                         size="small" [pTooltip]="'common.edit' | translate" />
                     <p-button icon="pi pi-trash" (onClick)="deleteWebhook(webhook)" [text]="true" severity="danger"
                         size="small" [pTooltip]="'common.delete' | translate" />
+                    }
                 </td>
             </tr>
         </ng-template>
@@ -150,5 +156,5 @@
     </ng-template>
 </p-dialog>
 
-<p-toast />
+
 <p-confirmDialog />

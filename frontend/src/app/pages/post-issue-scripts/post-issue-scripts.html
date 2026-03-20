@@ -4,6 +4,7 @@
 
     <div class="flex justify-content-between align-items-center mb-5 gap-3">
         <div class="flex gap-2">
+            @if (hasPermission('scripts', 'write')) {
             <p-button [label]="'scripts.create' | translate" icon="pi pi-plus" (onClick)="showCreateDialog()"
                 severity="primary">
             </p-button>
@@ -11,6 +12,7 @@
                 severity="secondary">
             </p-button>
             <input #fileInput type="file" accept=".zip" (change)="importScript($event)" style="display: none" />
+            }
         </div>
     </div>
 
@@ -43,6 +45,7 @@
                 <td>
                     <p-button icon="pi pi-download" (onClick)="exportScript(script)" [text]="true" severity="info"
                         size="small" [pTooltip]="'scripts.export' | translate" />
+                    @if (hasPermission('scripts', 'write')) {
                     @if (script.hasInit) {
                     <p-button icon="pi pi-play" (onClick)="runInit(script)" [text]="true" severity="success"
                         size="small" [pTooltip]="'scripts.runInit' | translate" />
@@ -53,6 +56,7 @@
                         size="small" [pTooltip]="'scripts.edit' | translate" />
                     <p-button icon="pi pi-trash" (onClick)="deleteScript(script)" [text]="true" severity="danger"
                         size="small" [pTooltip]="'common.delete' | translate" />
+                    }
                 </td>
             </tr>
         </ng-template>
@@ -188,5 +192,5 @@
     </ng-template>
 </p-dialog>
 
-<p-toast />
+
 <p-confirmDialog />

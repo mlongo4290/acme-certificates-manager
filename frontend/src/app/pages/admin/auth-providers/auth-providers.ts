@@ -18,7 +18,6 @@ import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
-import { ToastModule } from 'primeng/toast';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { environment } from '../../../../environments/environment';
 import { AuthProvider, AuthProviderService } from '../../../services/auth-provider.service';
@@ -41,7 +40,7 @@ import { AuthProvider, AuthProviderService } from '../../../services/auth-provid
         MessageModule,
         MenuModule,
         ConfirmDialogModule,
-        ToastModule,
+        
         TextareaModule,
         InputIconModule,
         IconFieldModule,
@@ -68,10 +67,8 @@ export class AuthProvidersComponent {
     providerTypes = [
         { label: 'Local', value: 'local' },
         { label: 'LDAP', value: 'ldap' },
-        { label: 'OAuth2', value: 'oauth2' },
         { label: 'Azure AD', value: 'azure-ad' },
-        { label: 'OIDC', value: 'oidc' },
-        { label: 'SAML', value: 'saml' }
+        { label: 'OIDC', value: 'oidc' }
     ];
 
     createProviderMenuItems = [
@@ -79,11 +76,6 @@ export class AuthProvidersComponent {
             label: 'LDAP',
             icon: 'pi pi-shield',
             command: () => this.showCreateDialog('ldap')
-        },
-        {
-            label: 'OAuth2',
-            icon: 'pi pi-external-link',
-            command: () => this.showCreateDialog('oauth2')
         },
         {
             label: 'Azure AD',
@@ -94,11 +86,6 @@ export class AuthProvidersComponent {
             label: 'OIDC',
             icon: 'pi pi-id-card',
             command: () => this.showCreateDialog('oidc')
-        },
-        {
-            label: 'SAML',
-            icon: 'pi pi-key',
-            command: () => this.showCreateDialog('saml')
         }
     ];
 
@@ -180,7 +167,7 @@ export class AuthProvidersComponent {
         });
     }
 
-    showCreateDialog(providerType: 'local' | 'ldap' | 'oauth2' | 'azure-ad' | 'oidc' | 'saml' = 'local'): void {
+    showCreateDialog(providerType: 'local' | 'ldap' | 'azure-ad' | 'oidc' = 'local'): void {
         this.isNewProvider = true;
         this.providerForm = {
             name: '',
@@ -198,15 +185,6 @@ export class AuthProvidersComponent {
                     tlsRejectUnauthorized: true,
                     tlsCaCert: ''
                 },
-                oauth2: {
-                    authorizationURL: '',
-                    tokenURL: '',
-                    clientID: '',
-                    clientSecret: '',
-                    callbackURL: '',
-                    userInfoURL: '',
-                    scopes: ['openid', 'profile', 'email']
-                },
                 azureAd: {
                     tenantID: '',
                     clientID: '',
@@ -217,17 +195,7 @@ export class AuthProvidersComponent {
                     issuerURL: '',
                     clientID: '',
                     clientSecret: '',
-                    callbackURL: '',
-                    scopes: ['openid', 'profile', 'email']
-                },
-                saml: {
-                    entryPoint: '',
-                    issuer: '',
-                    callbackURL: '',
-                    cert: '',
-                    identifierFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
-                    signatureAlgorithm: 'sha256',
-                    wantAssertionsSigned: true
+                    callbackURL: ''
                 }
             }
         };
@@ -271,23 +239,6 @@ export class AuthProvidersComponent {
             this.providerForm.settings.ldap.tlsCaCert = '';
         }
 
-        // Inizializza settings.oauth2
-        if (!this.providerForm.settings.oauth2) {
-            this.providerForm.settings.oauth2 = {
-                authorizationURL: '',
-                tokenURL: '',
-                clientID: '',
-                clientSecret: '',
-                callbackURL: '',
-                userInfoURL: '',
-                scopes: ['openid', 'profile', 'email']
-            };
-        }
-        // Assicurati che scopes sia un array
-        if (!this.providerForm.settings.oauth2.scopes || this.providerForm.settings.oauth2.scopes.length === 0) {
-            this.providerForm.settings.oauth2.scopes = ['openid', 'profile', 'email'];
-        }
-
         // Inizializza settings.azureAd
         if (!this.providerForm.settings.azureAd) {
             this.providerForm.settings.azureAd = {
@@ -304,25 +255,7 @@ export class AuthProvidersComponent {
                 issuerURL: '',
                 clientID: '',
                 clientSecret: '',
-                callbackURL: '',
-                scopes: ['openid', 'profile', 'email']
-            };
-        }
-        // Assicurati che scopes sia un array
-        if (!this.providerForm.settings.oidc.scopes || this.providerForm.settings.oidc.scopes.length === 0) {
-            this.providerForm.settings.oidc.scopes = ['openid', 'profile', 'email'];
-        }
-
-        // Inizializza settings.saml
-        if (!this.providerForm.settings.saml) {
-            this.providerForm.settings.saml = {
-                entryPoint: '',
-                issuer: '',
-                callbackURL: '',
-                cert: '',
-                identifierFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
-                signatureAlgorithm: 'sha256',
-                wantAssertionsSigned: true
+                callbackURL: ''
             };
         }
 
@@ -442,54 +375,6 @@ export class AuthProvidersComponent {
         }
     }
 
-    // OAuth2 scopes management
-    addOAuth2Scope(): void {
-        if (!this.providerForm.settings?.oauth2?.scopes) {
-            if (!this.providerForm.settings) this.providerForm.settings = {};
-            if (!this.providerForm.settings.oauth2) this.providerForm.settings.oauth2 = {};
-            this.providerForm.settings.oauth2.scopes = [];
-        }
-        this.providerForm.settings.oauth2.scopes.push('');
-    }
-
-    removeOAuth2Scope(index: number): void {
-        if (this.providerForm.settings?.oauth2?.scopes && this.providerForm.settings.oauth2.scopes.length > 1) {
-            this.providerForm.settings.oauth2.scopes.splice(index, 1);
-        }
-    }
-
-    // OIDC scopes management
-    addOIDCScope(): void {
-        if (!this.providerForm.settings?.oidc?.scopes) {
-            if (!this.providerForm.settings) this.providerForm.settings = {};
-            if (!this.providerForm.settings.oidc) this.providerForm.settings.oidc = {};
-            this.providerForm.settings.oidc.scopes = [];
-        }
-        this.providerForm.settings.oidc.scopes.push('');
-    }
-
-    removeOIDCScope(index: number): void {
-        if (this.providerForm.settings?.oidc?.scopes && this.providerForm.settings.oidc.scopes.length > 1) {
-            this.providerForm.settings.oidc.scopes.splice(index, 1);
-        }
-    }
-
-    // SAML dropdown options
-    samlIdentifierFormats = [
-        { label: 'Email Address', value: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress' },
-        { label: 'Unspecified', value: 'urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified' },
-        { label: 'X509 Subject Name', value: 'urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName' },
-        { label: 'Windows Domain Qualified Name', value: 'urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName' },
-        { label: 'Persistent', value: 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent' },
-        { label: 'Transient', value: 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient' }
-    ];
-
-    samlSignatureAlgorithms = [
-        { label: 'SHA-1', value: 'sha1' },
-        { label: 'SHA-256', value: 'sha256' },
-        { label: 'SHA-512', value: 'sha512' }
-    ];
-
     trackByIndex(index: number): number {
         return index;
     }
@@ -515,12 +400,8 @@ export class AuthProvidersComponent {
 
         if (this.providerForm.type === 'azure-ad' && this.providerForm.settings?.azureAd) {
             this.providerForm.settings.azureAd.callbackURL = `${baseUrl}${environment.apiUrl}/auth/azure-ad/${slug}/callback`;
-        } else if (this.providerForm.type === 'oauth2' && this.providerForm.settings?.oauth2) {
-            this.providerForm.settings.oauth2.callbackURL = `${baseUrl}${environment.apiUrl}/auth/oauth2/${slug}/callback`;
         } else if (this.providerForm.type === 'oidc' && this.providerForm.settings?.oidc) {
             this.providerForm.settings.oidc.callbackURL = `${baseUrl}${environment.apiUrl}/auth/oidc/${slug}/callback`;
-        } else if (this.providerForm.type === 'saml' && this.providerForm.settings?.saml) {
-            this.providerForm.settings.saml.callbackURL = `${baseUrl}${environment.apiUrl}/auth/saml/${slug}/callback`;
         }
     }
 

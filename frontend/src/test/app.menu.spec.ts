@@ -12,7 +12,7 @@ describe('AppMenu', () => {
     let translateServiceSpy: jasmine.SpyObj<TranslateService>;
 
     beforeEach(async () => {
-        authServiceSpy = jasmine.createSpyObj('AuthService', ['hasRole']);
+        authServiceSpy = jasmine.createSpyObj('AuthService', ['isAdmin']);
         translateServiceSpy = jasmine.createSpyObj('TranslateService', ['instant'], {
             onLangChange: of({})
         });
@@ -36,7 +36,7 @@ describe('AppMenu', () => {
     });
 
     it('should load menu on init', () => {
-        authServiceSpy.hasRole.and.returnValue(false);
+        authServiceSpy.isAdmin.and.returnValue(false);
 
         component.ngOnInit();
 
@@ -44,8 +44,8 @@ describe('AppMenu', () => {
         expect(translateServiceSpy.instant).toHaveBeenCalled();
     });
 
-    it('should include admin menu items when user has ADMIN role', () => {
-        authServiceSpy.hasRole.and.returnValue(true);
+    it('should include admin menu items when user is admin', () => {
+        authServiceSpy.isAdmin.and.returnValue(true);
 
         component.loadMenu();
 
@@ -54,8 +54,8 @@ describe('AppMenu', () => {
         expect(securityMenu?.items?.length).toBeGreaterThan(0);
     });
 
-    it('should not include admin menu items when user does not have ADMIN role', () => {
-        authServiceSpy.hasRole.and.returnValue(false);
+    it('should not include admin menu items when user is not admin', () => {
+        authServiceSpy.isAdmin.and.returnValue(false);
 
         component.loadMenu();
 
@@ -65,7 +65,7 @@ describe('AppMenu', () => {
     });
 
     it('should subscribe to language change events', () => {
-        authServiceSpy.hasRole.and.returnValue(false);
+        authServiceSpy.isAdmin.and.returnValue(false);
 
         component.ngOnInit();
 
@@ -73,7 +73,7 @@ describe('AppMenu', () => {
     });
 
     it('should have ACME menu section with multiple items', () => {
-        authServiceSpy.hasRole.and.returnValue(false);
+        authServiceSpy.isAdmin.and.returnValue(false);
 
         component.loadMenu();
 
@@ -83,7 +83,7 @@ describe('AppMenu', () => {
     });
 
     it('should include swagger docs in security menu', () => {
-        authServiceSpy.hasRole.and.returnValue(false);
+        authServiceSpy.isAdmin.and.returnValue(false);
 
         component.loadMenu();
 

@@ -60,6 +60,7 @@
         "activityLog": "Activity Log",
         "users": "Users",
         "authProviders": "Auth Providers",
+        "roles": "Roles",
         "security": "Security",
         "swaggerDocs": "API Documentation",
         "configExport": "Export / Import Config"
@@ -197,6 +198,7 @@
         "authProvider": "Authentication Provider",
         "mfa": "Two-Factor Authentication",
         "role": "Role",
+        "selectRole": "Select a role",
         "roles": {
             "admin": "Admin",
             "readOnly": "Read only",
@@ -210,6 +212,7 @@
         },
         "errors": {
             "passwordRequired": "Password is required for local users",
+            "roleRequired": "A role is required",
             "deleteFailed": "Failed to delete user",
             "loadFailed": "Failed to load users",
             "saveFailed": "Failed to save user"
@@ -304,11 +307,15 @@
         "oidcSettings": "OIDC Settings",
         "samlCallbackUrl": "SAML Callback URL",
         "samlCert": "SAML Certificate",
+        "samlMetadataUrl": "IdP Metadata URL",
+        "samlMetadataUrlDescription": "URL of the identity provider's SAML metadata XML. If provided, the entry point and certificate are loaded automatically.",
         "samlEntryPoint": "SAML Entry Point URL",
         "samlIssuer": "SAML Issuer",
         "samlPrivateKey": "SAML Private Key",
         "samlSignatureAlgorithm": "SAML Signature Algorithm",
         "samlSignatureAlgorithmDescription": "Algorithm used to sign SAML requests. Leave empty to use the default algorithm.",
+        "samlWantAuthnResponseSigned": "Require SAML Response to be Signed",
+        "samlWantAuthnResponseSignedDescription": "If disabled, the signature on the SAML response envelope is not validated. Disable only if the identity provider does not sign responses.",
         "samlWantAssertionsSigned": "Require SAML Assertions to be Signed",
         "samlWantAssertionsSignedDescription": "If enabled, the SAML identity provider must sign the assertions sent to the application.",
         "samlCallbackUrlDescription": "The callback URL you configured in your SAML provider. It must match this value.",
@@ -416,6 +423,7 @@
         "caAndAccount": "CA / Account",
         "expiryDate": "Expiry Date",
         "lastRenewal": "Last Renewal",
+        "schedulingDisabled": "Scheduling disabled",
         "notScheduled": "Not scheduled",
         "issueConfirm": "Confirm certificate issue",
         "reissueConfirm": "Confirm certificate reissue",
@@ -427,7 +435,8 @@
             "expiring": "Expiring Soon",
             "expired": "Expired",
             "pending": "Pending",
-            "error": "Error"
+            "error": "Error",
+            "revoked": "Revoked"
         },
         "addScript": "Add Script",
         "daysLeft": "days left",
@@ -478,12 +487,16 @@
             "downloadZip": "Download All as ZIP",
             "exportZip": "Export as ZIP",
             "viewDetails": "View Certificate Details",
-            "enable": "Enable Certificate",
-            "disable": "Disable Certificate",
-            "dryRun": "Dry Run (validate DNS challenge)"
+            "enable": "Enable Scheduling",
+            "enableScheduling": "Enable Scheduling",
+            "disable": "Disable Scheduling",
+            "disableScheduling": "Disable Scheduling",
+            "dryRun": "Dry Run (validate DNS challenge)",
+            "revoke": "Revoke Certificate"
         },
         "confirm": {
             "delete": "Are you sure you want to delete the certificate for '{{domain}}'?",
+            "revoke": "Are you sure you want to revoke the certificate for '{{domain}}'? This action cannot be undone and the certificate will no longer be trusted.",
             "runScripts": "Execute {{count}} post-issuance script(s) for '{{domain}}'?"
         },
         "success": {
@@ -492,7 +505,8 @@
             "deleted": "Certificate deleted successfully",
             "downloaded": "Certificate downloaded successfully",
             "enabled": "Certificate enabled",
-            "disabled": "Certificate disabled"
+            "disabled": "Certificate disabled",
+            "revoked": "Certificate '{{domain}}' revoked successfully"
         },
         "errors": {
             "failedToCreate": "Failed to create certificate",
@@ -505,7 +519,8 @@
             "deleteFailed": "Failed to delete certificate",
             "loadFailed": "Failed to load certificate details",
             "loadLogs": "Failed to load certificate logs",
-            "exportFailed": "Failed to export certificates"
+            "exportFailed": "Failed to export certificates",
+            "revokeFailed": "Failed to revoke certificate"
         },
         "placeholders": {
             "domain": "example.com",
@@ -1114,6 +1129,53 @@
             "saveFailed": "Failed to save webhook",
             "deleteFailed": "Failed to delete webhook",
             "testFailed": "Failed to test webhook"
+        }
+    },
+    "roles": {
+        "title": "Roles",
+        "description": "Manage user roles and their resource permissions.",
+        "create": "Create Role",
+        "edit": "Edit Role",
+        "noRoles": "No roles found.",
+        "nameLabel": "Name",
+        "descriptionLabel": "Description",
+        "adminCol": "Admin",
+        "adminRole": "Admin role (bypasses all permission checks)",
+        "adminCannotDelete": "The administrator role cannot be deleted",
+        "permissions": "Permissions",
+        "permissionsHint": "Set access level for each resource: None (no access), Read (view only), Write (full access).",
+        "resource": "Resource",
+        "permissionLevel": "Permission Level",
+        "namePlaceholder": "e.g., Certificate Managers",
+        "descriptionPlaceholder": "Optional description",
+        "confirmDelete": "Are you sure you want to delete the role \"{{name}}\"?",
+        "permissionOptions": {
+            "none": "None",
+            "read": "Read",
+            "write": "Write"
+        },
+        "resources": {
+            "certificates": "Certificates",
+            "acmeCa": "ACME Certificate Authorities",
+            "acmeAccounts": "ACME Accounts",
+            "dnsProviders": "DNS Providers",
+            "sshKeys": "SSH Keys",
+            "scripts": "Post-Issue Scripts",
+            "webhooks": "Webhooks",
+            "activityLogs": "Activity Logs",
+            "settings": "Settings",
+            "jobs": "Jobs",
+            "renewalCalendar": "Renewal Calendar"
+        },
+        "success": {
+            "created": "Role created successfully",
+            "updated": "Role updated successfully",
+            "deleted": "Role deleted successfully"
+        },
+        "errors": {
+            "loadFailed": "Failed to load roles",
+            "saveFailed": "Failed to save role",
+            "deleteFailed": "Failed to delete role"
         }
     },
     "configExport": {

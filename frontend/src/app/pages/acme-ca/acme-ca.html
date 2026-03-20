@@ -3,9 +3,11 @@
     <p class="text-surface-600 dark:text-surface-400 mb-6">{{ 'acmeCa.description' | translate }}</p>
 
     <div class="mb-5">
+        @if (hasPermission('acmeCa', 'write')) {
         <p-button [label]="'acmeCa.create' | translate" icon="pi pi-plus" (onClick)="showCreateDialog()"
             severity="primary">
         </p-button>
+        }
     </div>
 
     <p-table #dt [value]="cas" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [loading]="loading" [paginator]="true"
@@ -60,9 +62,11 @@
                     @if (ca.isDefault) {
                     <p-tag value="{{ 'acmeCa.default' | translate }}" severity="info" icon="pi pi-star-fill"></p-tag>
                     } @else {
+                    @if (hasPermission('acmeCa', 'write')) {
                     <p-button [label]="'acmeCa.setAsDefault' | translate" [text]="true" size="small"
                         (onClick)="setAsDefault(ca)">
                     </p-button>
+                    }
                     }
                 </td>
                 <td>
@@ -70,12 +74,14 @@
                         <p-button icon="pi pi-check-circle" [rounded]="true" [text]="true" severity="success"
                             (onClick)="testConnection(ca)" pTooltip="{{ 'acmeCa.testConnection' | translate }}">
                         </p-button>
+                        @if (hasPermission('acmeCa', 'write')) {
                         <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" severity="info"
                             (onClick)="showEditDialog(ca)" pTooltip="{{ 'acmeCa.edit' | translate }}">
                         </p-button>
                         <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger"
                             (onClick)="deleteCa(ca)" pTooltip="{{ 'common.delete' | translate }}">
                         </p-button>
+                        }
                     </div>
                 </td>
             </tr>
@@ -138,4 +144,3 @@
 </p-dialog>
 
 <p-confirmDialog></p-confirmDialog>
-<p-toast></p-toast>

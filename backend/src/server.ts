@@ -4,6 +4,7 @@ import express from 'express';
 import helmet from 'helmet';
 import { connect } from 'mongoose';
 import passport from 'passport';
+import session from 'express-session';
 
 // Load environment variables in development
 if (process.env.NODE_ENV !== 'production') {
@@ -16,7 +17,8 @@ import { AgendaController } from './controllers/agenda.controller';
 import { CertificateController } from './controllers/certificate.controller';
 import { JobController } from './controllers/job.controller';
 import { DnsProviderController } from './controllers/dnsProvider.controller';
-import { authMiddleware } from './middleware/auth';
+import { authMiddleware, requireAdmin } from './middleware/auth';
+import roleRoutes from './routes/roleRoutes';
 import acmeAccountRoutes from './routes/acmeAccountRoutes';
 import acmeCaRoutes from './routes/acmeCaRoutes';
 import activityLogRoutes from './routes/activityLog.routes';
@@ -48,6 +50,16 @@ app.set('trust proxy', true);
 app.use(cors());
 app.use(helmet());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Required for SAML POST binding
+
+// Session middleware — required by OIDC/SAML for state/nonce during the redirect flow.
+// The app uses JWT for auth; this session is transient and only lives during the OAuth handshake.
+app.use(session({
+    secret: process.env.JWT_SECRET || 'acm-session-secret',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: process.env.NODE_ENV === 'production', httpOnly: true, maxAge: 5 * 60 * 1000 }
+}));
 
 // Initialize services
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/acme-certificates-manager';
@@ -117,6 +129,9 @@ app.use('/api/webhooks', webhookRoutes);
 
 // Config export/import
 app.use('/api/config', configExportRoutes);
+
+// Roles (admin only)
+app.use('/api/roles', authMiddleware as any, requireAdmin as any, roleRoutes);
 
 // API v1 - REST API with Swagger documentation
 app.use('/api/v1', createV1Router(certificateController, dnsProviderController));

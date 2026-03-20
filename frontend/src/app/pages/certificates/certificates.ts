@@ -24,7 +24,6 @@ import { TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
-import { ToastModule } from 'primeng/toast';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
 import { CertificateViewerComponent } from '../../components/certificate-viewer/certificate-viewer.component';
@@ -55,7 +54,7 @@ import { SshKeyService } from '../../services/ssh-key.service';
         TagModule,
         TooltipModule,
         ConfirmDialogModule,
-        ToastModule,
+        
         ToggleSwitchModule,
         InputNumberModule,
         DatePickerModule,
@@ -84,6 +83,7 @@ export class CertificatesComponent implements OnInit, OnDestroy {
     private postIssueScriptsService = inject(PostIssueScriptsService);
     private sshKeyService = inject(SshKeyService);
     public translateService = inject(TranslateService);
+    isReadOnly = () => this.authService.isReadOnly();
 
     activeStep: number = 1;
     // Expose Math to template
@@ -590,6 +590,36 @@ export class CertificatesComponent implements OnInit, OnDestroy {
         });
     }
 
+    confirmRevoke(certificate: Certificate) {
+        this.confirmationService.confirm({
+            message: this.translateService.instant('certificates.confirm.revoke', { domain: certificate.domain }),
+            header: this.translateService.instant('certificates.actions.revoke'),
+            icon: 'pi pi-ban',
+            acceptLabel: this.translateService.instant('certificates.actions.revoke'),
+            rejectLabel: this.translateService.instant('no'),
+            acceptButtonStyleClass: 'p-button-danger',
+            accept: () => {
+                this.certificateService.revokeCertificate(certificate._id!).subscribe({
+                    next: () => {
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: this.translateService.instant('common.success'),
+                            detail: this.translateService.instant('certificates.success.revoked', { domain: certificate.domain })
+                        });
+                        this.reloadTableData();
+                    },
+                    error: (error) => {
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: this.translateService.instant('common.error'),
+                            detail: error.error?.message || this.translateService.instant('certificates.errors.revokeFailed')
+                        });
+                    }
+                });
+            }
+        });
+    }
+
     reissueCertificate(certificate: Certificate) {
         this.confirmationService.confirm({
             message: this.translateService.instant('certificates.reissueConfirm', { domain: certificate.domain }),
@@ -720,6 +750,8 @@ export class CertificatesComponent implements OnInit, OnDestroy {
                 return 'info';
             case 'error':
                 return 'warn';
+            case 'revoked':
+                return 'contrast';
             default:
                 return 'secondary';
         }
@@ -970,8 +1002,9 @@ export class CertificatesComponent implements OnInit, OnDestroy {
 
     showRowMenu(event: Event, cert: Certificate) {
         const items: MenuItem[] = [];
+        const readOnly = this.isReadOnly();
 
-        if (cert.challengeType === 'dns-01') {
+        if (!readOnly && cert.challengeType === 'dns-01') {
             items.push({
                 label: this.translateService.instant('certificates.actions.dryRun'),
                 icon: 'pi pi-search',
@@ -1009,7 +1042,7 @@ export class CertificatesComponent implements OnInit, OnDestroy {
             items.push({ separator: true });
         }
 
-        if (cert.postIssueScripts && cert.postIssueScripts.length > 0) {
+        if (!readOnly && cert.postIssueScripts && cert.postIssueScripts.length > 0) {
             items.push({
                 label: this.translateService.instant('certificates.actions.runScripts'),
                 icon: 'pi pi-bolt',
@@ -1023,27 +1056,38 @@ export class CertificatesComponent implements OnInit, OnDestroy {
             command: () => this.showLogs(cert)
         });
 
-        items.push({ separator: true });
+        if (!readOnly) {
+            items.push({ separator: true });
 
-        items.push({
-            label: this.translateService.instant(cert.enabled === false ? 'certificates.actions.enable' : 'certificates.actions.disable'),
-            icon: cert.enabled === false ? 'pi pi-play-circle' : 'pi pi-pause-circle',
-            command: () => this.toggleEnabled(cert)
-        });
-        items.push({
-            label: this.translateService.instant('certificates.edit'),
-            icon: 'pi pi-pencil',
-            command: () => this.showEditDialog(cert)
-        });
+            items.push({
+                label: this.translateService.instant(cert.enabled === false ? 'certificates.actions.enableScheduling' : 'certificates.actions.disableScheduling'),
+                icon: cert.enabled === false ? 'pi pi-play-circle' : 'pi pi-pause-circle',
+                command: () => this.toggleEnabled(cert)
+            });
+            items.push({
+                label: this.translateService.instant('certificates.edit'),
+                icon: 'pi pi-pencil',
+                command: () => this.showEditDialog(cert)
+            });
 
-        items.push({ separator: true });
+            items.push({ separator: true });
 
-        items.push({
-            label: this.translateService.instant('common.delete'),
-            icon: 'pi pi-trash',
-            styleClass: 'text-red-500',
-            command: () => this.deleteCertificate(cert)
-        });
+            if (cert.status === 'valid' && cert.certificate) {
+                items.push({
+                    label: this.translateService.instant('certificates.actions.revoke'),
+                    icon: 'pi pi-ban',
+                    styleClass: 'text-red-500',
+                    command: () => this.confirmRevoke(cert)
+                });
+            }
+
+            items.push({
+                label: this.translateService.instant('common.delete'),
+                icon: 'pi pi-trash',
+                styleClass: 'text-red-500',
+                command: () => this.deleteCertificate(cert)
+            });
+        }
 
         this.rowMenuItems = items;
         this.cdr.detectChanges();

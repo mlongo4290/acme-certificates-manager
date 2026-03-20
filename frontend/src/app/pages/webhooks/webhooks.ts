@@ -11,9 +11,9 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { Webhook, WebhookLog, WebhookService } from '../../services/webhook.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
     selector: 'app-webhooks',
@@ -28,7 +28,7 @@ import { Webhook, WebhookLog, WebhookService } from '../../services/webhook.serv
         CheckboxModule,
         MultiSelectModule,
         TagModule,
-        ToastModule,
+        
         TooltipModule,
         ConfirmDialogModule,
         TranslateModule,
@@ -41,6 +41,9 @@ export class WebhooksComponent implements OnInit {
     private messageService = inject(MessageService);
     private confirmationService = inject(ConfirmationService);
     public translateService = inject(TranslateService);
+    private authService = inject(AuthService);
+
+    hasPermission = (resource: string, level: 'read' | 'write') => this.authService.hasPermission(resource, level);
 
     webhooks: Webhook[] = [];
     loading = false;

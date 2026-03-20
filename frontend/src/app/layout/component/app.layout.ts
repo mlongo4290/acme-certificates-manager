@@ -4,6 +4,7 @@ import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { EmailRequiredDialogComponent } from '../../components/email-required-dialog/email-required-dialog';
 import { LayoutService } from '../service/layout.service';
+import { ToastModule } from 'primeng/toast';
 import { AppFooter } from './app.footer';
 import { AppSidebar } from './app.sidebar';
 import { AppTopbar } from './app.topbar';
@@ -11,7 +12,7 @@ import { AppTopbar } from './app.topbar';
 @Component({
     selector: 'app-layout',
     standalone: true,
-    imports: [CommonModule, AppTopbar, AppSidebar, RouterModule, AppFooter, EmailRequiredDialogComponent],
+    imports: [CommonModule, AppTopbar, AppSidebar, RouterModule, AppFooter, EmailRequiredDialogComponent, ToastModule],
     templateUrl: './app.layout.html'
 })
 export class AppLayout implements OnInit {

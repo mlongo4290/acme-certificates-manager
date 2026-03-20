@@ -24,12 +24,6 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
                 }
             }
 
-            // Handle 403 Forbidden errors
-            if (error.status === 403) {
-                // User doesn't have permission
-                router.navigate(['/auth/access']);
-            }
-
             return throwError(() => error);
         })
     );

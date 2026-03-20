@@ -129,6 +129,10 @@ export class CertificateService {
         return this.http.post<{ jobId: string }>(`${this.apiUrl}/${id}/dry-run`, {});
     }
 
+    revokeCertificate(id: string, reason: number = 0): Observable<{ ok: boolean }> {
+        return this.http.post<{ ok: boolean }>(`${this.apiUrl}/${id}/revoke`, { reason });
+    }
+
     testPostIssueScript(id: string): Observable<TestScriptResult> {
         return this.http.post<TestScriptResult>(`${this.apiUrl}/${id}/test-script`, {});
     }

@@ -7,7 +7,7 @@ export interface AuthProvider {
     _id?: string;
     name: string;
     slug?: string; // URL-safe identifier
-    type: 'local' | 'ldap' | 'oauth2' | 'azure-ad' | 'oidc' | 'saml';
+    type: 'local' | 'ldap' | 'azure-ad' | 'oidc';
     priority: number;
     enabled: boolean;
     settings?: {
@@ -22,15 +22,6 @@ export interface AuthProvider {
             tlsRejectUnauthorized?: boolean;
             tlsCaCert?: string;
         };
-        oauth2?: {
-            authorizationURL?: string;
-            tokenURL?: string;
-            clientID?: string;
-            clientSecret?: string;
-            callbackURL?: string;
-            userInfoURL?: string;
-            scopes?: string[];
-        };
         azureAd?: {
             clientID?: string;
             clientSecret?: string;
@@ -42,17 +33,6 @@ export interface AuthProvider {
             clientID?: string;
             clientSecret?: string;
             callbackURL?: string;
-            scopes?: string[];
-        };
-        saml?: {
-            entryPoint?: string;
-            issuer?: string;
-            callbackURL?: string;
-            cert?: string;
-            privateKey?: string;
-            identifierFormat?: string;
-            signatureAlgorithm?: string;
-            wantAssertionsSigned?: boolean;
         };
     };
 }

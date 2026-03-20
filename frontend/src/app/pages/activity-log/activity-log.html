@@ -7,9 +7,11 @@
             <p-button [label]="'activityLog.refresh' | translate" icon="pi pi-refresh" (onClick)="reloadTableData()"
                 severity="primary">
             </p-button>
+            @if (hasPermission('activityLogs', 'write')) {
             <p-button [label]="'activityLog.cleanup' | translate" icon="pi pi-trash" (onClick)="cleanupOldLogs()"
                 severity="danger">
             </p-button>
+            }
         </p-buttongroup>
     </div>
 
@@ -48,8 +50,8 @@
                             [showMatchModes]="true" />
                     </div>
                 </th>
+                @if (isAdmin()) {
                 <th style="width: 150px; min-width: 150px;">
-
                     <div class="flex items-center justify-between">
                         {{ 'activityLog.user' | translate }}
                         <p-columnFilter field="username" matchMode="equals" display="menu" operator="or"
@@ -65,6 +67,7 @@
                         </p-columnFilter>
                     </div>
                 </th>
+                }
                 <th style="width: 180px; min-width: 180px;">
                     <div class="flex items-center justify-between">
                         {{ 'activityLog.timestamp' | translate }}
@@ -100,14 +103,16 @@
                         }
                     </div>
                 </td>
+                @if (isAdmin()) {
                 <td style="width: 150px;">{{ activity.username }}</td>
+                }
                 <td style="width: 180px;">{{ activity.timestamp | date:'short':undefined:translateService.getCurrentLang() }}</td>
             </tr>
         </ng-template>
 
         <ng-template #emptymessage>
             <tr>
-                <td colspan="5" class="text-center">
+                <td [attr.colspan]="isAdmin() ? 5 : 4" class="text-center">
                     {{ 'activityLog.noActivities' | translate }}
                 </td>
             </tr>

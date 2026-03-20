@@ -3,9 +3,11 @@
     <p class="text-surface-600 dark:text-surface-400 mb-6">{{ 'acmeAccounts.description' | translate }}</p>
 
     <div class="mb-5">
+        @if (hasPermission('acmeAccounts', 'write')) {
         <p-button [label]="'acmeAccounts.create' | translate" icon="pi pi-plus" (onClick)="showCreateDialog()"
             severity="primary">
         </p-button>
+        }
     </div>
 
     <p-table #dt [value]="accounts" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [loading]="loading"
@@ -59,6 +61,7 @@
                 </td>
                 <td>
                     <div class="flex gap-2">
+                        @if (hasPermission('acmeAccounts', 'write')) {
                         @if (!account.registeredAt) {
                         <p-button icon="pi pi-user-plus" [rounded]="true" [text]="true" severity="success"
                             (onClick)="registerAccount(account)" pTooltip="{{ 'acmeAccounts.register' | translate }}"
@@ -82,6 +85,7 @@
                         <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger"
                             (onClick)="deleteAccount(account)" pTooltip="{{ 'acmeAccounts.delete' | translate }}">
                         </p-button>
+                        }
                         }
                     </div>
                 </td>
@@ -146,5 +150,5 @@
     </ng-template>
 </p-dialog>
 
-<p-toast />
+
 <p-confirmDialog />

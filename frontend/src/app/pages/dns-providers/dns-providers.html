@@ -4,9 +4,11 @@
 
     <div class="flex justify-content-between align-items-center mb-5 gap-3">
         <div>
+            @if (hasPermission('dnsProviders', 'write')) {
             <p-button [label]="'dnsProviders.create' | translate" icon="pi pi-plus" (onClick)="showCreateDialog()"
                 severity="primary">
             </p-button>
+            }
         </div>
     </div>
 
@@ -66,6 +68,7 @@
                 </td>
                 <td>
                     <div class="flex gap-2">
+                        @if (hasPermission('dnsProviders', 'write')) {
                         <p-button icon="pi pi-play" [pTooltip]="'dnsProviders.test' | translate"
                             (click)="testProvider(provider)" [disabled]="saving" severity="info" [text]="true" />
 
@@ -74,6 +77,7 @@
 
                         <p-button icon="pi pi-trash" [pTooltip]="'common.delete' | translate"
                             (click)="deleteProvider(provider)" [disabled]="saving" severity="danger" [text]="true" />
+                        }
                     </div>
                 </td>
             </tr>
@@ -197,4 +201,3 @@
 </p-dialog>
 
 <p-confirmDialog />
-<p-toast />

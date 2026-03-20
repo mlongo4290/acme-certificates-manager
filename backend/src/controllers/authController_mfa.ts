@@ -6,6 +6,7 @@ import { MfaTrustedDevice } from '../models/MfaTrustedDevice';
 import { User } from '../models/User';
 import { ActivityLogService } from '../services/activityLog.service';
 import { Logger } from '../services/logger.service';
+import { buildRolePermissions } from './authController';
 
 const logger = new Logger('AuthMFA');
 
@@ -64,13 +65,17 @@ export const verifyMfaLogin = async (req: Request, res: Response) => {
             });
         }
 
+        // Load role permissions
+        const { isAdmin, permissions } = await buildRolePermissions(user);
+
         // MFA verification successful, generate JWT token
         const jwtToken = generateToken({
             userId: user.id,
             username: user.username,
-            authProvider: user.authProvider,
+            authProvider: user.authProvider as 'local' | 'ldap' | 'azure-ad' | 'oidc',
             authProviderName: user.authProviderName ? user.authProviderName : undefined,
-            role: user.role
+            isAdmin,
+            permissions
         });
 
         // Log successful login with MFA
@@ -84,7 +89,8 @@ export const verifyMfaLogin = async (req: Request, res: Response) => {
                 username: user.username,
                 authProvider: user.authProvider,
                 authProviderName: user.authProviderName,
-                role: user.role
+                isAdmin,
+                permissions
             }
         });
     } catch (error) {

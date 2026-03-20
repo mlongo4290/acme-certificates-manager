@@ -14,11 +14,11 @@ import { PasswordModule } from 'primeng/password';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
 import { AdminUserService } from '../../../services/admin-user.service';
 import { AuthProviderService } from '../../../services/auth-provider.service';
+import { Role, RoleService } from '../../../services/role.service';
 
 @Component({
     selector: 'app-users',
@@ -37,7 +37,7 @@ import { AuthProviderService } from '../../../services/auth-provider.service';
         SelectModule,
         TagModule,
         ConfirmDialogModule,
-        ToastModule,
+        
         TooltipModule,
         IconFieldModule,
         InputIconModule
@@ -47,6 +47,7 @@ import { AuthProviderService } from '../../../services/auth-provider.service';
 export class UsersComponent implements OnInit {
     private adminUserService = inject(AdminUserService);
     private authProviderService = inject(AuthProviderService);
+    private roleService = inject(RoleService);
     private messageService = inject(MessageService);
     private confirmationService = inject(ConfirmationService);
     private translateService = inject(TranslateService);
@@ -58,12 +59,8 @@ export class UsersComponent implements OnInit {
     loading = false;
     saving = false;
     authProviders: any[] = [];
-
-    roleOptions = [
-        { label: this.translateService.instant('users.roles.admin'), value: 'ADMIN' },
-        { label: this.translateService.instant('users.roles.certManager'), value: 'CERT_MANAGER' },
-        { label: this.translateService.instant('users.roles.readOnly'), value: 'READ_ONLY' }
-    ];
+    roles: Role[] = [];
+    roleOptions: { label: string; value: string }[] = [];
 
     providerOptions: any[] = [];
 
@@ -71,21 +68,14 @@ export class UsersComponent implements OnInit {
         username: '',
         email: '',
         password: '',
-        role: 'CERT_MANAGER',
         authProvider: 'local',
-        isActive: true
+        isActive: true,
+        role: null
     };
 
     ngOnInit() {
         this.loadAuthProviders();
-
-        this.translateService.onLangChange.subscribe(() => {
-            this.roleOptions = [
-                { label: this.translateService.instant('users.roles.admin'), value: 'ADMIN' },
-                { label: this.translateService.instant('users.roles.certManager'), value: 'CERT_MANAGER' },
-                { label: this.translateService.instant('users.roles.readOnly'), value: 'READ_ONLY' }
-            ];
-        });
+        this.loadRoles();
     }
 
     onLazyLoad(event: any) {
@@ -146,7 +136,7 @@ export class UsersComponent implements OnInit {
                 this.totalRecords = response.totalRecords;
                 this.loading = false;
             },
-            error: (error) => {
+            error: () => {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translateService.instant('common.error'),
@@ -166,8 +156,20 @@ export class UsersComponent implements OnInit {
                     value: p.type
                 }));
             },
-            error: (error) => {
-            }
+            error: () => { }
+        });
+    }
+
+    loadRoles() {
+        this.roleService.getRoles(0, 0).subscribe({
+            next: (response) => {
+                this.roles = response.data;
+                this.roleOptions = response.data.map(g => ({
+                    label: g.name,
+                    value: g._id!
+                }));
+            },
+            error: () => { }
         });
     }
 
@@ -179,7 +181,7 @@ export class UsersComponent implements OnInit {
                 this.totalRecords = response.totalRecords;
                 this.loading = false;
             },
-            error: (error) => {
+            error: () => {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translateService.instant('common.error'),
@@ -196,9 +198,9 @@ export class UsersComponent implements OnInit {
             username: '',
             email: '',
             password: '',
-            role: 'CERT_MANAGER',
             authProvider: 'local',
-            isActive: true
+            isActive: true,
+            role: null
         };
         this.displayDialog = true;
     }
@@ -209,11 +211,11 @@ export class UsersComponent implements OnInit {
             id: user._id,
             username: user.username,
             email: user.email,
-            role: user.role,
             isActive: user.isActive,
             authProvider: user.authProvider,
             authProviderName: user.authProviderName,
-            mfaEnabled: user.mfaEnabled || false
+            mfaEnabled: user.mfaEnabled || false,
+            role: user.role?._id || user.role || null
         };
         this.displayDialog = true;
     }
@@ -227,6 +229,17 @@ export class UsersComponent implements OnInit {
 
         // Prepare user data
         const userData = { ...this.userForm };
+
+        // Role is required
+        if (!userData.role) {
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translateService.instant('common.error'),
+                detail: this.translateService.instant('users.errors.roleRequired')
+            });
+            this.saving = false;
+            return;
+        }
 
         // Validation for new users
         if (this.isNewUser) {
@@ -246,13 +259,13 @@ export class UsersComponent implements OnInit {
                 delete userData.password;
             }
         } else {
-            // For external auth users (except LDAP), don't send email (managed by provider)
+            // For external auth users, don't send email (managed by provider)
             if (userData.authProvider !== 'local') {
                 delete userData.email;
             }
         }
 
-        // For non-MFA supported providers (OAuth2, Azure AD, OIDC, SAML), don't send MFA fields
+        // For non-MFA supported providers, don't send MFA fields
         const mfaSupportedProviders = ['local', 'ldap'];
         if (!this.isNewUser && !mfaSupportedProviders.includes(userData.authProvider)) {
             delete userData.mfaEnabled;
@@ -314,8 +327,11 @@ export class UsersComponent implements OnInit {
         });
     }
 
-    getRoleLabel(role: string): string {
-        return this.roleOptions.find(r => r.value === role)?.label || role;
+    getRoleName(user: any): string {
+        if (!user.role) return '-';
+        if (typeof user.role === 'object') return user.role.name || '-';
+        const g = this.roles.find(g => g._id === user.role);
+        return g?.name || '-';
     }
 
     getProviderLabel(provider: string, providerName?: string): string {
@@ -325,10 +341,8 @@ export class UsersComponent implements OnInit {
         const labels: { [key: string]: string } = {
             'local': 'Local',
             'ldap': 'LDAP',
-            'oauth2': 'OAuth2',
             'azure-ad': 'Azure AD',
-            'oidc': 'OIDC',
-            'saml': 'SAML'
+            'oidc': 'OIDC'
         };
         return labels[provider] || provider;
     }
@@ -345,7 +359,6 @@ export class UsersComponent implements OnInit {
             acceptLabel: this.translateService.instant('yes'),
             rejectLabel: this.translateService.instant('no'),
             accept: () => {
-                // Update user to disable MFA
                 this.adminUserService.updateUser(user._id, { mfaEnabled: false }).subscribe({
                     next: () => {
                         this.messageService.add({
@@ -387,4 +400,5 @@ export class UsersComponent implements OnInit {
             this.userForm.password = '';
         }
     }
+
 }

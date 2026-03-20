@@ -3,6 +3,7 @@ import { connect, disconnect } from 'mongoose';
 import { AcmeCa } from './models/AcmeCa';
 import { AuthProvider } from './models/AuthProvider';
 import { DnsProvider } from './models/dnsProvider.model';
+import { Role } from './models/Role';
 import { User } from './models/User';
 
 // Load environment variables in development
@@ -11,6 +12,34 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 export const seedInitialData = async () => {
+    // Create Administrators role first
+    const administratorsRoleData = {
+        name: 'Administrators',
+        description: 'Full administrative access to all resources',
+        isAdmin: true,
+        permissions: {
+            certificates: 'write',
+            acmeCa: 'write',
+            acmeAccounts: 'write',
+            dnsProviders: 'write',
+            sshKeys: 'write',
+            scripts: 'write',
+            webhooks: 'write',
+            activityLogs: 'write',
+            settings: 'write',
+            jobs: 'write',
+            renewalCalendar: 'write'
+        }
+    };
+
+    let administratorsRole = await Role.findOne({ name: 'Administrators' });
+    if (!administratorsRole) {
+        administratorsRole = await Role.create(administratorsRoleData);
+        console.log('✓ "Administrators" role created');
+    } else {
+        console.log('✓ "Administrators" role already exists');
+    }
+
     // Check if admin user already exists
     const existingAdmin = await User.findOne({ username: 'admin' });
 
@@ -20,7 +49,7 @@ export const seedInitialData = async () => {
                 username: 'admin',
                 password: 'admin',
                 authProvider: 'local', // Will be hashed automatically by the pre-save hook
-                role: 'ADMIN'
+                role: administratorsRole._id
             });
 
             await adminUser.save();
@@ -29,8 +58,16 @@ export const seedInitialData = async () => {
             console.log('  Password: admin');
             console.log('  Please change the password after first login');
         } else {
-            console.log('✓ Admin user already exists');
+            // Migrate existing admin user to Administrators role if not already assigned
+            if (!existingAdmin.role) {
+                (existingAdmin as any).role = administratorsRole._id;
+                await (existingAdmin as any).save();
+                console.log('✓ Migrated admin user to "Administrators" role');
+            } else {
+                console.log('✓ Admin user already exists');
+            }
         }
+
 
         // Check if local auth provider exists
         const existingLocalProvider = await AuthProvider.findOne({ type: 'local' });
@@ -48,6 +85,59 @@ export const seedInitialData = async () => {
             console.log('✓ Local authentication provider enabled');
         } else {
             console.log('✓ Local authentication provider already configured');
+        }
+
+        // Seed default roles
+        const certManagerRoleData = {
+            name: 'Certificate Managers',
+            description: 'Full certificate management access with read access to supporting resources',
+            permissions: {
+                certificates: 'write',
+                acmeCa: 'read',
+                acmeAccounts: 'read',
+                dnsProviders: 'read',
+                sshKeys: 'read',
+                scripts: 'read',
+                webhooks: 'write',
+                activityLogs: 'read',
+                settings: 'none',
+                jobs: 'write',
+                renewalCalendar: 'read'
+            }
+        };
+
+        const viewersRoleData = {
+            name: 'Viewers',
+            description: 'Read-only access to most resources',
+            permissions: {
+                certificates: 'read',
+                acmeCa: 'read',
+                acmeAccounts: 'read',
+                dnsProviders: 'read',
+                sshKeys: 'read',
+                scripts: 'read',
+                webhooks: 'read',
+                activityLogs: 'read',
+                settings: 'none',
+                jobs: 'read',
+                renewalCalendar: 'read'
+            }
+        };
+
+        let certManagerRole = await Role.findOne({ name: 'Certificate Managers' });
+        if (!certManagerRole) {
+            certManagerRole = await Role.create(certManagerRoleData);
+            console.log('✓ "Certificate Managers" system role created');
+        } else {
+            console.log('✓ "Certificate Managers" role already exists');
+        }
+
+        let viewersRole = await Role.findOne({ name: 'Viewers' });
+        if (!viewersRole) {
+            viewersRole = await Role.create(viewersRoleData);
+            console.log('✓ "Viewers" system role created');
+        } else {
+            console.log('✓ "Viewers" role already exists');
         }
 
         // Seed ACME CAs

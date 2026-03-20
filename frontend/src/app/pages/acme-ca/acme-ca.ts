@@ -14,10 +14,10 @@ import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
-import { ToastModule } from 'primeng/toast';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
 import { AcmeCaService } from '../../services/acme-ca.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
     selector: 'app-acme-ca',
@@ -36,7 +36,7 @@ import { AcmeCaService } from '../../services/acme-ca.service';
         TagModule,
         TooltipModule,
         ConfirmDialogModule,
-        ToastModule,
+        
         IconFieldModule,
         InputIconModule,
         MultiSelectModule
@@ -48,6 +48,9 @@ export class AcmeCaComponent {
     private messageService = inject(MessageService);
     private confirmationService = inject(ConfirmationService);
     private translateService = inject(TranslateService);
+    private authService = inject(AuthService);
+
+    hasPermission = (resource: string, level: 'read' | 'write') => this.authService.hasPermission(resource, level);
 
     @ViewChild('dt') table: any;
 

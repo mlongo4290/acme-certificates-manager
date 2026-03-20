@@ -48,12 +48,12 @@ describe('AuthService', () => {
             };
 
             const mockResponse: LoginResponse = {
-                token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxIiwidXNlcm5hbWUiOiJ0ZXN0dXNlciIsImF1dGhQcm92aWRlciI6ImxvY2FsIiwicm9sZSI6IkFETUlOIn0.test',
+                token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxIiwidXNlcm5hbWUiOiJ0ZXN0dXNlciIsImF1dGhQcm92aWRlciI6ImxvY2FsIiwiaXNBZG1pbiI6dHJ1ZX0.test',
                 user: {
                     id: '1',
                     username: 'user',
                     authProvider: 'local',
-                    role: 'ADMIN'
+                    isAdmin: true
                 }
             };
 
@@ -120,7 +120,7 @@ describe('AuthService', () => {
                     id: '1',
                     username: 'mfauser',
                     authProvider: 'local',
-                    role: 'CERT_MANAGER'
+                    isAdmin: false
                 }
             };
 
@@ -151,7 +151,7 @@ describe('AuthService', () => {
                 id: '1',
                 username: 'testuser',
                 authProvider: 'local',
-                role: 'ADMIN'
+                isAdmin: true
             });
 
             // Act
@@ -165,22 +165,32 @@ describe('AuthService', () => {
         });
     });
 
-    describe('hasRole', () => {
-        it('should return true for matching role', () => {
+    describe('isAdmin', () => {
+        it('should return true when user isAdmin is true', () => {
             service.currentUser.set({
                 id: '1',
                 username: 'admin',
                 authProvider: 'local',
-                role: 'ADMIN'
+                isAdmin: true
             });
 
-            expect(service.hasRole('ADMIN')).toBeTrue();
-            expect(service.hasRole('CERT_MANAGER')).toBeFalse();
+            expect(service.isAdmin()).toBeTrue();
+        });
+
+        it('should return false when user isAdmin is false', () => {
+            service.currentUser.set({
+                id: '1',
+                username: 'user',
+                authProvider: 'local',
+                isAdmin: false
+            });
+
+            expect(service.isAdmin()).toBeFalse();
         });
 
         it('should return false when no user', () => {
             service.currentUser.set(null);
-            expect(service.hasRole('ADMIN')).toBeFalse();
+            expect(service.isAdmin()).toBeFalse();
         });
     });
 

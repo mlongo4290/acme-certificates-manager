@@ -13,7 +13,7 @@ const certificateSchema = new Schema({
     },
     status: {
         type: String,
-        enum: ['valid', 'expired', 'pending', 'error'],
+        enum: ['valid', 'expired', 'pending', 'error', 'revoked'],
         default: 'pending',
     },
     issueDate: {

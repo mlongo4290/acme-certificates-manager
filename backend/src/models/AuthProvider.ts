@@ -17,7 +17,7 @@ const AuthProviderSchema = new Schema(
         type: {
             type: String,
             required: true,
-            enum: ['local', 'ldap', 'oauth2', 'azure-ad', 'oidc', 'saml']
+            enum: ['local', 'ldap', 'azure-ad', 'oidc']
         },
         enabled: {
             type: Boolean,

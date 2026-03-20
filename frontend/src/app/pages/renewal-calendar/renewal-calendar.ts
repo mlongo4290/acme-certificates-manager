@@ -12,7 +12,6 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { ToastModule } from 'primeng/toast';
 import { AgendaService } from '../../services/agenda.service';
 
 @Component({
@@ -23,7 +22,7 @@ import { AgendaService } from '../../services/agenda.service';
         TranslateModule,
         FullCalendarModule,
         ButtonModule,
-        ToastModule,
+        
         ProgressSpinnerModule
     ],
     templateUrl: './renewal-calendar.html'

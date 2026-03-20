@@ -13,12 +13,19 @@ export type AlertType =
     | 'post_script_success'
     | 'post_script_failed';
 
+export interface ScriptResult {
+    name: string;
+    success: boolean;
+    error?: string;
+}
+
 export interface NotificationMetadata {
     certificateId?: string;
     domain?: string;
     error?: string;
     scriptName?: string;
     expiryDate?: string;
+    scriptResults?: ScriptResult[];
     [key: string]: any;
 }
 
@@ -77,7 +84,8 @@ export class NotificationService {
                 certificateId: metadata.certificateId || 'N/A',
                 expiryDate: metadata.expiryDate || 'N/A',
                 error: metadata.error || 'Unknown error',
-                scriptName: metadata.scriptName || 'N/A'
+                scriptName: metadata.scriptName || 'N/A',
+                scriptResultsHtml: this.formatScriptResults(metadata.scriptResults, language)
             };
 
             let subject, templateName;
@@ -134,6 +142,18 @@ export class NotificationService {
             this.logger.error(`Failed to send email to ${user.email}: ${error.message}`);
             throw error;
         }
+    }
+
+    private formatScriptResults(results?: ScriptResult[], language: string = 'en'): string {
+        if (!results || results.length === 0) return '';
+        const title = language === 'it' ? 'Script post-emissione:' : 'Post-issuance scripts:';
+        const rows = results.map(r => {
+            const icon = r.success ? '&#10003;' : '&#10007;';
+            const color = r.success ? '#0fbc09' : '#e53e3e';
+            const errorPart = r.error ? ` &mdash; <em>${r.error}</em>` : '';
+            return `<span style="color:${color}">${icon}</span> <strong>${r.name}</strong>${errorPart}`;
+        }).join('<br/>');
+        return `<p><strong>${title}</strong></p><p>${rows}</p>`;
     }
 
     private async sendWebhooks(alertType: AlertType, metadata: NotificationMetadata): Promise<void> {

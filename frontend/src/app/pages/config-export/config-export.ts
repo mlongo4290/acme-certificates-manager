@@ -10,7 +10,6 @@ import { MessageModule } from 'primeng/message';
 import { PasswordModule } from 'primeng/password';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { ConfigExportService, ImportResult } from '../../services/config-export.service';
 
 @Component({
@@ -27,7 +26,7 @@ import { ConfigExportService, ImportResult } from '../../services/config-export.
         PasswordModule,
         TableModule,
         TagModule,
-        ToastModule
+        
     ],
     templateUrl: './config-export.html'
 })

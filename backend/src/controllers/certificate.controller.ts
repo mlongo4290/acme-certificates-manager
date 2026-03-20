@@ -597,6 +597,25 @@ export class CertificateController {
         }).catch(err => this.logger.error('dryRunCertificate background error', err));
     });
 
+    revokeCertificate = asyncHandler(async (req: Request, res: Response) => {
+        const certificate = await Certificate.findById(req.params.id);
+        if (!certificate) { res.status(404); throw new Error('Certificate not found'); }
+        if (certificate.status === 'revoked') { res.status(400); throw new Error('Certificate is already revoked'); }
+        if (!certificate.certificate) { res.status(400); throw new Error('No certificate data stored'); }
+
+        const reason = Number(req.body.reason ?? 0);
+
+        await this.certificateService.revokeCertificate(certificate._id.toString(), reason);
+        await ActivityLogService.log('certificateRevoked', req, {
+            resourceType: 'certificate',
+            resourceId: certificate._id.toString(),
+            resourceName: certificate.domain,
+        });
+        await this.schedulerService.cancelRenewal(certificate._id.toString());
+
+        res.json({ ok: true });
+    });
+
     testPostIssueScript = asyncHandler(async (req: Request, res: Response) => {
         const result = await this.certificateService.testPostIssueScript(req.params.id);
         res.json(result);

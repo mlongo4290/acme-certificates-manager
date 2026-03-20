@@ -55,14 +55,10 @@
                         <i class="pi pi-user"></i>
                         } @else if (provider.type === 'ldap') {
                         <i class="pi pi-shield"></i>
-                        } @else if (provider.type === 'oauth2') {
-                        <i class="pi pi-external-link"></i>
                         } @else if (provider.type === 'azure-ad') {
                         <i class="pi pi-microsoft"></i>
                         } @else if (provider.type === 'oidc') {
                         <i class="pi pi-id-card"></i>
-                        } @else if (provider.type === 'saml') {
-                        <i class="pi pi-key"></i>
                         }
                         {{ getProviderTypeLabel(provider.type) }}
                     </span>
@@ -259,101 +255,6 @@
         </div>
         }
 
-        @if (providerForm.type === 'oauth2') {
-        <div class="border-t border-surface-200 dark:border-surface-700 pt-6">
-            <h4 class="font-semibold mb-4 text-surface-900 dark:text-surface-0">{{ 'authProviders.oauth2Settings' |
-                translate }}</h4>
-
-            <div class="mb-5">
-                <label for="oauth2AuthUrl" class="font-semibold block text-surface-700 dark:text-surface-200">{{
-                    'authProviders.oauth2AuthUrl' | translate }} *</label>
-                <input pInputText id="oauth2AuthUrl" [(ngModel)]="providerForm.settings!.oauth2!.authorizationURL"
-                    class="w-full" placeholder="https://provider.com/oauth/authorize" />
-                <small class="block mt-2 text-surface-600 dark:text-surface-400">{{
-                    'authProviders.oauth2AuthUrlDescription' |
-                    translate }}</small>
-            </div>
-
-            <div class="mb-5">
-                <label for="oauth2TokenUrl" class="font-semibold block text-surface-700 dark:text-surface-200">{{
-                    'authProviders.oauth2TokenUrl' | translate }} *</label>
-                <input pInputText id="oauth2TokenUrl" [(ngModel)]="providerForm.settings!.oauth2!.tokenURL"
-                    class="w-full" placeholder="https://provider.com/oauth/token" />
-                <small class="block mt-2 text-surface-600 dark:text-surface-400">{{
-                    'authProviders.oauth2TokenUrlDescription' |
-                    translate }}</small>
-            </div>
-
-            <div class="mb-5">
-                <label for="oauth2ClientId" class="font-semibold block text-surface-700 dark:text-surface-200">{{
-                    'authProviders.oauth2ClientId' | translate }} *</label>
-                <input pInputText id="oauth2ClientId" [(ngModel)]="providerForm.settings!.oauth2!.clientID"
-                    class="w-full" placeholder="your-client-id" />
-                <small class="block mt-2 text-surface-600 dark:text-surface-400">{{
-                    'authProviders.oauth2ClientIdDescription' |
-                    translate }}</small>
-            </div>
-
-            <div class="mb-5">
-                <label for="oauth2ClientSecret" class="font-semibold block text-surface-700 dark:text-surface-200">{{
-                    'authProviders.oauth2ClientSecret' |
-                    translate }} *</label>
-                <p-password id="oauth2ClientSecret" [(ngModel)]="providerForm.settings!.oauth2!.clientSecret"
-                    [toggleMask]="true" [feedback]="false" [fluid]="true" placeholder="********">
-                </p-password>
-                <small class="block mt-2 text-surface-600 dark:text-surface-400">{{
-                    'authProviders.oauth2ClientSecretDescription' |
-                    translate }}</small>
-            </div>
-
-            <div class="mb-5">
-                <label for="oauth2CallbackUrl" class="font-semibold block text-surface-700 dark:text-surface-200">{{
-                    'authProviders.oauth2CallbackUrl' |
-                    translate }} *</label>
-                <input pInputText id="oauth2CallbackUrl" [(ngModel)]="providerForm.settings!.oauth2!.callbackURL"
-                    class="w-full" [disabled]="true" />
-                <small class="block mt-2 text-surface-600 dark:text-surface-400">{{
-                    'authProviders.oauth2CallbackUrlDescription' |
-                    translate }}</small>
-            </div>
-
-            <div class="mb-5">
-                <label for="oauth2UserInfoUrl"
-                    class="font-semibold mb-3 block text-surface-700 dark:text-surface-200">{{
-                    'authProviders.oauth2UserInfoUrl' |
-                    translate }} *</label>
-                <input pInputText id="oauth2UserInfoUrl" [(ngModel)]="providerForm.settings!.oauth2!.userInfoURL"
-                    class="w-full" placeholder="https://provider.com/api/user" />
-                <small class="block mt-2 text-surface-600 dark:text-surface-400">{{
-                    'authProviders.oauth2UserInfoUrlDescription' |
-                    translate }}</small>
-            </div>
-
-            <div class="mb-5">
-                <label class="font-semibold mb-3 block text-surface-700 dark:text-surface-200">{{
-                    'authProviders.oauth2Scopes' |
-                    translate }}</label>
-                @for (scope of providerForm.settings?.oauth2?.scopes; track trackByIndex($index); let i = $index) {
-                <div class="flex gap-2 mb-2">
-                    <input pInputText [(ngModel)]="providerForm.settings!.oauth2!.scopes![i]" class="flex-1"
-                        placeholder="e.g., read:user, user:email" />
-                    @if (providerForm.settings!.oauth2!.scopes!.length > 1) {
-                    <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger"
-                        (onClick)="removeOAuth2Scope(i)">
-                    </p-button>
-                    }
-                </div>
-                }
-                <p-button label="{{ 'authProviders.addScope' | translate }}" icon="pi pi-plus" [text]="true"
-                    size="small" (onClick)="addOAuth2Scope()">
-                </p-button>
-                <small class="block mt-2 text-surface-600 dark:text-surface-400">{{
-                    'authProviders.oauth2ScopesDescription' |
-                    translate }}</small>
-            </div>
-        </div>
-        }
-
         @if (providerForm.type === 'oidc') {
         <div class="border-t border-surface-200 dark:border-surface-700 pt-6">
             <h4 class="font-semibold mb-4 text-surface-900 dark:text-surface-0">{{ 'authProviders.oidcSettings' |
@@ -400,127 +301,6 @@
                     translate }}</small>
             </div>
 
-            <div class="mb-5">
-                <label class="font-semibold mb-3 block text-surface-700 dark:text-surface-200">{{
-                    'authProviders.oidcScopes' |
-                    translate }}</label>
-                @for (scope of providerForm.settings?.oidc?.scopes; track trackByIndex($index); let i = $index) {
-                <div class="flex gap-2 mb-2">
-                    <input pInputText [(ngModel)]="providerForm.settings!.oidc!.scopes![i]" class="flex-1"
-                        placeholder="e.g., openid, profile, email" />
-                    @if (providerForm.settings!.oidc!.scopes!.length > 1) {
-                    <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger"
-                        (onClick)="removeOIDCScope(i)">
-                    </p-button>
-                    }
-                </div>
-                }
-                <p-button label="{{ 'authProviders.addScope' | translate }}" icon="pi pi-plus" [text]="true"
-                    size="small" (onClick)="addOIDCScope()">
-                </p-button>
-                <small class="block mt-2 text-surface-600 dark:text-surface-400">{{
-                    'authProviders.oidcScopesDescription' |
-                    translate }}</small>
-            </div>
-        </div>
-        }
-
-        @if (providerForm.type === 'saml') {
-        <div class="border-t border-surface-200 dark:border-surface-700 pt-6">
-            <h4 class="font-semibold mb-4 text-surface-900 dark:text-surface-0">{{ 'authProviders.samlSettings' |
-                translate }}</h4>
-
-            <div class="mb-5">
-                <label for="samlEntryPoint" class="font-semibold block text-surface-700 dark:text-surface-200">{{
-                    'authProviders.samlEntryPoint' | translate }} *</label>
-                <input pInputText id="samlEntryPoint" [(ngModel)]="providerForm.settings!.saml!.entryPoint"
-                    class="w-full" placeholder="https://idp.example.com/saml/sso" />
-                <small class="block mt-2 text-surface-600 dark:text-surface-400">{{
-                    'authProviders.samlEntryPointDescription' |
-                    translate }}</small>
-            </div>
-
-            <div class="mb-5">
-                <label for="samlIssuer" class="font-semibold block text-surface-700 dark:text-surface-200">{{
-                    'authProviders.samlIssuer' | translate }} *</label>
-                <input pInputText id="samlIssuer" [(ngModel)]="providerForm.settings!.saml!.issuer" class="w-full"
-                    placeholder="http://localhost:3000" />
-                <small class="block mt-2 text-surface-600 dark:text-surface-400">{{
-                    'authProviders.samlIssuerDescription' |
-                    translate }}</small>
-            </div>
-
-            <div class="mb-5">
-                <label for="samlCallbackUrl" class="font-semibold block text-surface-700 dark:text-surface-200">{{
-                    'authProviders.samlCallbackUrl' | translate }} *</label>
-                <input pInputText id="samlCallbackUrl" [(ngModel)]="providerForm.settings!.saml!.callbackURL"
-                    class="w-full" [disabled]="true" />
-                <small class="block mt-2 text-surface-600 dark:text-surface-400">{{
-                    'authProviders.samlCallbackUrlDescription' |
-                    translate }}</small>
-            </div>
-
-            <div class="mb-5">
-                <label for="samlCert" class="font-semibold block text-surface-700 dark:text-surface-200">{{
-                    'authProviders.samlCert' | translate }} *</label>
-                <textarea pTextarea id="samlCert" [(ngModel)]="providerForm.settings!.saml!.cert" class="w-full"
-                    rows="5" placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----">
-                </textarea>
-                <small class="block mt-2 text-surface-600 dark:text-surface-400">{{ 'authProviders.samlCertDescription'
-                    | translate
-                    }}</small>
-            </div>
-
-            <div class="mb-5">
-                <label for="samlPrivateKey" class="font-semibold block text-surface-700 dark:text-surface-200">{{
-                    'authProviders.samlPrivateKey' | translate }}</label>
-                <textarea pTextarea id="samlPrivateKey" [(ngModel)]="providerForm.settings!.saml!.privateKey"
-                    class="w-full" rows="5"
-                    placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----">
-                </textarea>
-                <small class="block mt-2 text-surface-600 dark:text-surface-400">{{
-                    'authProviders.samlPrivateKeyDescription' |
-                    translate }}</small>
-            </div>
-
-            <div class="mb-5">
-                <label for="samlIdentifierFormat"
-                    class="font-semibold mb-3 block text-surface-700 dark:text-surface-200">{{
-                    'authProviders.samlIdentifierFormat'
-                    | translate
-                    }}</label>
-                <p-select id="samlIdentifierFormat" [(ngModel)]="providerForm.settings!.saml!.identifierFormat"
-                    [options]="samlIdentifierFormats" optionLabel="label" optionValue="value" [fluid]="true">
-                </p-select>
-                <small class="block mt-2 text-surface-600 dark:text-surface-400">{{
-                    'authProviders.samlIdentifierFormatDescription'
-                    | translate }}</small>
-            </div>
-
-            <div class="mb-5">
-                <label for="samlSignatureAlgorithm"
-                    class="font-semibold mb-3 block text-surface-700 dark:text-surface-200">{{
-                    'authProviders.samlSignatureAlgorithm' | translate
-                    }}</label>
-                <p-select id="samlSignatureAlgorithm" [(ngModel)]="providerForm.settings!.saml!.signatureAlgorithm"
-                    [options]="samlSignatureAlgorithms" optionLabel="label" optionValue="value" [fluid]="true">
-                </p-select>
-                <small class="block mt-2 text-surface-600 dark:text-surface-400">{{
-                    'authProviders.samlSignatureAlgorithmDescription' | translate }}</small>
-            </div>
-
-            <div class="mb-5">
-                <label for="samlWantAssertionsSigned"
-                    class="font-semibold block text-surface-700 dark:text-surface-200">{{
-                    'authProviders.samlWantAssertionsSigned' | translate
-                    }}</label>
-                <p-toggleSwitch id="samlWantAssertionsSigned"
-                    [(ngModel)]="providerForm.settings!.saml!.wantAssertionsSigned">
-                </p-toggleSwitch>
-                <small class="block mt-2 text-surface-600 dark:text-surface-400">{{
-                    'authProviders.samlWantAssertionsSignedDescription' | translate
-                    }}</small>
-            </div>
         </div>
         }
 
@@ -585,4 +365,3 @@
 </p-dialog>
 
 <p-confirmDialog></p-confirmDialog>
-<p-toast></p-toast>

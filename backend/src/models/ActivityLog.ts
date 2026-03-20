@@ -8,6 +8,7 @@ const activityLogSchema = new Schema(
             enum: [
                 'certificateIssued',
                 'certificateRenewed',
+                'certificateRevoked',
                 'certificateCreated',
                 'certificateUpdated',
                 'certificateDeleted',

@@ -91,7 +91,7 @@ export const createAuthProvider = asyncHandler(async (req: Request, res: Respons
         return;
     }
 
-    const validTypes: string[] = ['local', 'ldap', 'oauth2', 'azure-ad'];
+    const validTypes: string[] = ['local', 'ldap', 'azure-ad', 'oidc'];
     if (!validTypes.includes(type)) {
         res.status(400).json({ message: 'Invalid provider type' });
         return;

@@ -624,9 +624,53 @@ export class AcmeService {
     /**
      * Renew a certificate (placeholder for future implementation)
      */
-    async renewCertificate(domain: string): Promise<void> {
+    async renewCertificate(_domain: string): Promise<void> {
         // This will be implemented when we add full certificate management
         throw new Error('Certificate renewal not yet implemented');
+    }
+
+    /**
+     * Revoke a certificate via ACME
+     */
+    async revokeCertificate(
+        directoryUrl: string,
+        accountKeyJwk: any,
+        certificatePem: string,
+        reason: number = 0
+    ): Promise<{ success: boolean; message: string }> {
+        try {
+            const alg = accountKeyJwk.kty === 'EC'
+                ? { name: 'ECDSA', namedCurve: accountKeyJwk.crv || 'P-256' }
+                : { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' };
+
+            const privateKey = await webcrypto.subtle.importKey('jwk', accountKeyJwk, alg, true, ['sign']);
+            const pubJwk = { ...accountKeyJwk };
+            delete pubJwk.d; delete pubJwk.p; delete pubJwk.q;
+            delete pubJwk.dp; delete pubJwk.dq; delete pubJwk.qi; delete pubJwk.key_ops;
+            const publicKey = await webcrypto.subtle.importKey('jwk', pubJwk, alg, true, ['verify']);
+
+            const client = await acme.ApiClient.create(
+                { privateKey, publicKey },
+                directoryUrl,
+                { crypto: webcrypto }
+            );
+
+            // Retrieve existing account (required before any ACME operation)
+            await client.newAccount({ onlyReturnExisting: true });
+
+            // Parse PEM to DER buffer
+            const pemBody = certificatePem
+                .replace(/-----BEGIN CERTIFICATE-----/, '')
+                .replace(/-----END CERTIFICATE-----/, '')
+                .replace(/\s+/g, '');
+            const derBuffer = Buffer.from(pemBody, 'base64');
+
+            await client.revoke(derBuffer, reason);
+
+            return { success: true, message: 'Certificate revoked successfully at CA' };
+        } catch (error: any) {
+            return { success: false, message: error.message };
+        }
     }
 }
 

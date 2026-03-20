@@ -28,10 +28,7 @@
                         [showMatchModes]="true" [showOperator]="true" [showAddButton]="true" />
                 </th>
                 <th [style]="{ 'min-width': '150px' }">{{ 'users.authProvider' | translate }}</th>
-                <th pSortableColumn="role" [style]="{ 'min-width': '120px' }">
-                    {{ 'users.role' | translate }}
-                    <p-sortIcon field="role" />
-                </th>
+                <th [style]="{ 'min-width': '150px' }">{{ 'users.role' | translate }}</th>
                 <th [style]="{ 'min-width': '80px' }">{{ 'users.mfa' | translate }}</th>
                 <th pSortableColumn="isActive" [style]="{ 'min-width': '100px' }">
                     {{ 'common.status' | translate }}
@@ -50,8 +47,7 @@
                     </p-tag>
                 </td>
                 <td>
-                    <p-tag [value]="getRoleLabel(user.role)">
-                    </p-tag>
+                    <span>{{ getRoleName(user) }}</span>
                 </td>
                 <td>
                     @if (isInternalProvider(user.authProvider)) {
@@ -145,10 +141,9 @@
         }
 
         <div class="flex flex-col gap-2">
-            <label for="role" class="block font-medium text-surface-700 dark:text-surface-200">{{ 'profile.role' |
-                translate }} *</label>
+            <label for="role" class="block font-medium text-surface-700 dark:text-surface-200">{{ 'users.role' | translate }} *</label>
             <p-select id="role" [(ngModel)]="userForm.role" [options]="roleOptions" optionLabel="label"
-                optionValue="value" [fluid]="true" placeholder="{{ 'profile.role' | translate }}" appendTo="body">
+                optionValue="value" [fluid]="true" [placeholder]="'users.selectRole' | translate" appendTo="body">
             </p-select>
         </div>
 
@@ -204,4 +199,4 @@
 </p-dialog>
 
 <p-confirmDialog></p-confirmDialog>
-<p-toast></p-toast>
+

@@ -6,7 +6,6 @@ const UserSchema = new Schema(
         username: {
             type: String,
             required: true,
-            unique: true,
             trim: true,
             lowercase: true
         },
@@ -22,7 +21,7 @@ const UserSchema = new Schema(
         },
         authProvider: {
             type: String,
-            enum: ['local', 'ldap', 'oauth2', 'azure-ad', 'oidc', 'saml'],
+            enum: ['local', 'ldap', 'azure-ad', 'oidc'],
             default: 'local',
             required: true
         },
@@ -31,10 +30,9 @@ const UserSchema = new Schema(
             required: false
         },
         role: {
-            type: String,
-            enum: ['ADMIN', 'CERT_MANAGER', 'READ_ONLY'],
-            default: 'READ_ONLY',
-            required: true
+            type: Schema.Types.ObjectId,
+            ref: 'Role',
+            required: false
         },
         isActive: {
             type: Boolean,
@@ -79,6 +77,9 @@ const UserSchema = new Schema(
         timestamps: true
     }
 );
+
+// Compound unique index: same username allowed across different auth providers
+UserSchema.index({ username: 1, authProvider: 1 }, { unique: true });
 
 // Hash password before saving
 UserSchema.pre('save', async function (next) {

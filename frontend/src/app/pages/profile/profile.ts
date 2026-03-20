@@ -18,7 +18,6 @@ import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { AuthService } from '../../services/auth.service';
 import { UserService } from '../../services/user.service';
@@ -35,7 +34,7 @@ import { UserService } from '../../services/user.service';
         PasswordModule,
         ButtonModule,
         MessageModule,
-        ToastModule,
+        
         DialogModule,
         CheckboxModule,
         SelectModule,

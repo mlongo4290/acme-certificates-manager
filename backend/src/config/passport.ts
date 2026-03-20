@@ -30,17 +30,11 @@ export const initializePassport = async () => {
             case 'ldap':
                 configureLdapStrategy(provider);
                 break;
-            case 'oauth2':
-                configureOAuth2Strategy(provider);
-                break;
             case 'azure-ad':
                 configureAzureADStrategy(provider);
                 break;
             case 'oidc':
-                configureOIDCStrategy(provider);
-                break;
-            case 'saml':
-                configureSAMLStrategy(provider);
+                await configureOIDCStrategy(provider);
                 break;
         }
     }
@@ -57,7 +51,7 @@ const configureLocalStrategy = () => {
         },
         async (username, password, done) => {
             try {
-                const user = await User.findOne({ username: username.toLowerCase() });
+                const user = await User.findOne({ username: username.toLowerCase(), authProvider: 'local' });
 
                 if (!user) {
                     return done(null, false, { message: 'Invalid credentials' });
@@ -143,7 +137,7 @@ const configureLdapStrategy = (provider: any) => {
                 const ldapUsername = ldapUser[usernameField] || ldapUser.uid || ldapUser.cn;
                 const ldapEmail = ldapUser[emailField] || ldapUser.mail || ldapUser.email;
 
-                let user = await User.findOne({ username: ldapUsername.toLowerCase() });
+                let user = await User.findOne({ username: ldapUsername.toLowerCase(), authProvider: 'ldap' });
 
                 if (!user) {
                     // Create new user from LDAP
@@ -170,96 +164,6 @@ const configureLdapStrategy = (provider: any) => {
             }
         }
     ));
-};
-
-// Generic OAuth2 strategy
-const configureOAuth2Strategy = (provider: any) => {
-    if (!provider.settings.oauth2) {
-        logger.warn(`OAuth2 provider ${provider.name} is missing required configuration`);
-        return;
-    }
-
-    const strategy = new OAuth2Strategy(
-        {
-            authorizationURL: provider.settings.oauth2.authorizationURL || '',
-            tokenURL: provider.settings.oauth2.tokenURL || '',
-            clientID: provider.settings.oauth2.clientID || '',
-            clientSecret: provider.settings.oauth2.clientSecret || '',
-            callbackURL: provider.settings.oauth2.callbackURL || '',
-            scope: provider.settings.oauth2.scopes || []
-        },
-        async (accessToken: string, refreshToken: string, profile: any, done: any) => {
-            try {
-                // Fetch user info from userInfoURL if provided
-                if (provider.settings.oauth2?.userInfoURL) {
-                    const response = await fetch(provider.settings.oauth2.userInfoURL, {
-                        headers: {
-                            'Authorization': `Bearer ${accessToken}`
-                        }
-                    });
-
-                    if (!response.ok) {
-                        logger.error(`Failed to fetch user profile from OAuth2 provider: ${response.statusText}`, new Error(response.statusText));
-                        return done(new Error('Failed to fetch user profile'));
-                    }
-
-                    const userInfo = await response.json();
-                    logger.debug(`OAuth2 user info: ${JSON.stringify(userInfo)}`);
-
-                    // Try common username fields
-                    const username = (userInfo as any).username ||
-                        (userInfo as any).email ||
-                        (userInfo as any).login ||
-                        (userInfo as any).id;
-
-                    if (!username) {
-                        logger.error(`No username found in OAuth2 profile: ${JSON.stringify(userInfo)}`, new Error('No username'));
-                        return done(new Error('No username in OAuth2 profile'));
-                    }
-
-                    let user = await User.findOne({ username: username.toLowerCase() });
-
-                    if (!user) {
-                        user = new User({
-                            username: username.toLowerCase(),
-                            password: Math.random().toString(36),
-                            authProvider: 'oauth2',
-                            authProviderName: provider.name
-                        });
-                        await user.save();
-                        logger.info(`Created new user from OAuth2: ${username}`);
-                    }
-
-                    return done(null, user);
-                } else {
-                    // Fallback to profile if no userInfoURL
-                    const username = profile.username || profile.email || profile.id;
-                    if (!username) {
-                        return done(new Error('No username in OAuth2 profile'));
-                    }
-
-                    let user = await User.findOne({ username: username.toLowerCase() });
-
-                    if (!user) {
-                        user = new User({
-                            username: username.toLowerCase(),
-                            password: Math.random().toString(36),
-                            authProvider: 'oauth2',
-                            authProviderName: provider.name
-                        });
-                        await user.save();
-                    }
-
-                    return done(null, user);
-                }
-            } catch (error) {
-                logger.error('OAuth2 authentication error:', error as Error);
-                return done(error);
-            }
-        }
-    );
-
-    passport.use(`oauth2-${provider.name}`, strategy);
 };
 
 // Azure AD / Microsoft 365 strategy
@@ -301,7 +205,7 @@ const configureAzureADStrategy = (provider: any) => {
                     return done(new Error('No username in Azure AD profile'));
                 }
 
-                let user = await User.findOne({ username: username.toLowerCase() });
+                let user = await User.findOne({ username: username.toLowerCase(), authProvider: 'azure-ad' });
 
                 if (!user) {
                     user = new User({
@@ -326,49 +230,72 @@ const configureAzureADStrategy = (provider: any) => {
 };
 
 // OIDC (OpenID Connect) strategy
-const configureOIDCStrategy = (provider: any) => {
+const configureOIDCStrategy = async (provider: any) => {
     if (!provider.settings.oidc) {
         logger.warn(`OIDC provider ${provider.name} is missing required configuration`);
         return;
     }
 
+    // Discover endpoints from the OIDC discovery document
+    let issuerURL = (provider.settings.oidc.issuerURL || '').replace(/\/$/, '');
+    let authorizationURL: string;
+    let tokenURL: string;
+    let userInfoURL: string;
+
+    try {
+        const discoveryRes = await fetch(`${issuerURL}/.well-known/openid-configuration`);
+        if (!discoveryRes.ok) throw new Error(`HTTP ${discoveryRes.status}`);
+        const discovery: any = await discoveryRes.json();
+        authorizationURL = discovery.authorization_endpoint;
+        tokenURL = discovery.token_endpoint;
+        userInfoURL = discovery.userinfo_endpoint;
+        // Use the canonical issuer from the discovery doc — must match the `iss` claim exactly
+        issuerURL = discovery.issuer;
+        logger.info(`OIDC discovery for ${provider.name}: issuer=${issuerURL} authorization=${authorizationURL}`);
+    } catch (err: any) {
+        logger.error(`OIDC discovery failed for ${provider.name}: ${err.message}`);
+        return;
+    }
+
     const strategy = new OpenIDConnectStrategy(
         {
-            issuer: provider.settings.oidc.issuerURL || '',
+            issuer: issuerURL,
             clientID: provider.settings.oidc.clientID || '',
             clientSecret: provider.settings.oidc.clientSecret || '',
             callbackURL: provider.settings.oidc.callbackURL || '',
-            authorizationURL: `${provider.settings.oidc.issuerURL}/protocol/openid-connect/auth`,
-            tokenURL: `${provider.settings.oidc.issuerURL}/protocol/openid-connect/token`,
-            userInfoURL: `${provider.settings.oidc.issuerURL}/protocol/openid-connect/userinfo`,
-            scope: provider.settings.oidc.scopes || ['openid', 'profile', 'email']
+            authorizationURL,
+            tokenURL,
+            userInfoURL,
+            scope: ['openid', 'profile', 'email']
         },
         async (issuer: any, profile: any, done: any) => {
             try {
                 logger.debug(`OIDC profile: ${JSON.stringify(profile)}`);
 
-                // Extract username from OIDC profile
-                const username = profile.emails?.[0]?.value ||
-                    profile.username ||
-                    profile.preferred_username ||
-                    profile.id;
+                // Profile.parse maps: preferred_username → profile.username, email → profile.emails
+                const username = profile.username || profile.id;
+                const email = profile.emails?.[0]?.value;
 
                 if (!username) {
                     logger.error(`No username found in OIDC profile: ${JSON.stringify(profile)}`, new Error('No username'));
                     return done(new Error('No username in OIDC profile'));
                 }
 
-                let user = await User.findOne({ username: username.toLowerCase() });
+                let user = await User.findOne({ username: username.toLowerCase(), authProvider: 'oidc' });
 
                 if (!user) {
                     user = new User({
                         username: username.toLowerCase(),
+                        email: email || undefined,
                         password: Math.random().toString(36),
                         authProvider: 'oidc',
                         authProviderName: provider.name
                     });
                     await user.save();
                     logger.info(`Created new user from OIDC: ${username}`);
+                } else if (email && user.email !== email) {
+                    user.email = email;
+                    await user.save();
                 }
 
                 return done(null, user);
@@ -380,15 +307,6 @@ const configureOIDCStrategy = (provider: any) => {
     );
 
     passport.use(`oidc-${provider.name}`, strategy);
-};
-
-// SAML 2.0 strategy
-const configureSAMLStrategy = (provider: any) => {
-    if (!provider.settings.saml) {
-        logger.warn(`SAML provider ${provider.name} is missing required configuration`);
-        return;
-    }
-    return;
 };
 
 // Get list of enabled auth providers for frontend

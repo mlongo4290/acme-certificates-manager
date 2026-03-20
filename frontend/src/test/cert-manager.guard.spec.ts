@@ -11,13 +11,7 @@ describe('certManagerGuard', () => {
     beforeEach(() => {
         routerSpy = createRouterSpy('/');
 
-        const isAuthenticatedSignal = jasmine.createSpy('isAuthenticated').and.returnValue(false);
-        const hasRoleSpy = jasmine.createSpy('hasRole').and.returnValue(false);
-
-        authServiceSpy = jasmine.createSpyObj('AuthService', ['hasRole'], {
-            isAuthenticated: isAuthenticatedSignal
-        });
-        authServiceSpy.hasRole = hasRoleSpy;
+        authServiceSpy = jasmine.createSpyObj('AuthService', ['hasPermission']);
 
         TestBed.configureTestingModule({
             providers: [
@@ -27,53 +21,27 @@ describe('certManagerGuard', () => {
         });
     });
 
-    it('should allow access when user has ADMIN role', () => {
-        authServiceSpy.hasRole.and.callFake((role: string) => role === 'ADMIN');
+    it('should allow access when user has certificates write permission', () => {
+        authServiceSpy.hasPermission.and.returnValue(true);
 
         const result = TestBed.runInInjectionContext(() =>
             certManagerGuard({} as any, {} as any)
         );
 
         expect(result).toBeTrue();
-        expect(authServiceSpy.hasRole).toHaveBeenCalledWith('ADMIN');
+        expect(authServiceSpy.hasPermission).toHaveBeenCalledWith('certificates', 'write');
         expect(routerSpy.navigate).not.toHaveBeenCalled();
     });
 
-    it('should allow access when user has CERT_MANAGER role', () => {
-        authServiceSpy.hasRole.and.callFake((role: string) => role === 'CERT_MANAGER');
-
-        const result = TestBed.runInInjectionContext(() =>
-            certManagerGuard({} as any, {} as any)
-        );
-
-        expect(result).toBeTrue();
-        expect(authServiceSpy.hasRole).toHaveBeenCalledWith('ADMIN');
-        expect(authServiceSpy.hasRole).toHaveBeenCalledWith('CERT_MANAGER');
-        expect(routerSpy.navigate).not.toHaveBeenCalled();
-    });
-
-    it('should redirect to access denied when user has neither ADMIN nor CERT_MANAGER role', () => {
-        authServiceSpy.hasRole.and.returnValue(false);
+    it('should redirect to access denied when user lacks certificates write permission', () => {
+        authServiceSpy.hasPermission.and.returnValue(false);
 
         const result = TestBed.runInInjectionContext(() =>
             certManagerGuard({} as any, {} as any)
         );
 
         expect(result).toBeFalse();
-        expect(authServiceSpy.hasRole).toHaveBeenCalledWith('ADMIN');
-        expect(authServiceSpy.hasRole).toHaveBeenCalledWith('CERT_MANAGER');
-        expect(routerSpy.navigate).toHaveBeenCalledWith(['/auth/access']);
-    });
-
-    it('should redirect to access denied when user is not authenticated', () => {
-        authServiceSpy.isAuthenticated.and.returnValue(false);
-        authServiceSpy.hasRole.and.returnValue(false);
-
-        const result = TestBed.runInInjectionContext(() =>
-            certManagerGuard({} as any, {} as any)
-        );
-
-        expect(result).toBeFalse();
+        expect(authServiceSpy.hasPermission).toHaveBeenCalledWith('certificates', 'write');
         expect(routerSpy.navigate).toHaveBeenCalledWith(['/auth/access']);
     });
 });

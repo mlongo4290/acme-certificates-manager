@@ -70,6 +70,7 @@ export const getUsers = async (req: AuthRequest, res: Response) => {
 
         const users = await User.find(filterQuery)
             .select('-password -mfaSecret -resetPasswordToken -resetPasswordExpires')
+            .populate('role', 'name description isAdmin')
             .sort(sortObj)
             .skip(page * limit)
             .limit(limit);
@@ -87,11 +88,15 @@ export const getUsers = async (req: AuthRequest, res: Response) => {
 // Create a new user
 export const createUser = async (req: AuthRequest, res: Response) => {
     try {
-        const { username, password, email, role, isActive, authProvider } = req.body;
+        const { username, password, email, isActive, authProvider, role } = req.body;
 
         // Validate required fields
         if (!username || !email) {
             return res.status(400).json({ message: 'Username and email are required' });
+        }
+
+        if (!role) {
+            return res.status(400).json({ message: 'A role is required' });
         }
 
         // Set default auth provider
@@ -107,11 +112,6 @@ export const createUser = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ message: 'Password should not be provided for external authentication users' });
         }
 
-        // Validate role
-        if (role && !['ADMIN', 'CERT_MANAGER', 'READ_ONLY'].includes(role)) {
-            return res.status(400).json({ message: 'Invalid role' });
-        }
-
         // Check if user already exists
         const existingUser = await User.findOne({ username });
         if (existingUser) {
@@ -123,7 +123,6 @@ export const createUser = async (req: AuthRequest, res: Response) => {
             username,
             email,
             authProvider: userAuthProvider,
-            role: role || 'CERT_MANAGER',
             isActive: isActive !== undefined ? isActive : true,
             mfaEnabled: false
         };
@@ -133,6 +132,10 @@ export const createUser = async (req: AuthRequest, res: Response) => {
             userData.password = password;
         }
 
+        if (role) {
+            userData.role = role;
+        }
+
         const user = new User(userData);
 
         await user.save();
@@ -140,10 +143,12 @@ export const createUser = async (req: AuthRequest, res: Response) => {
         // Log user creation
         await ActivityLogService.logUserCreated(user.username, (user._id).toString(), req);
 
-        // Return user without sensitive data
-        const { password: _, mfaSecret, resetPasswordToken, resetPasswordExpires, ...userResponse } = user.toObject();
+        // Return user without sensitive data, with role populated
+        const savedUser = await User.findById(user._id)
+            .select('-password -mfaSecret -resetPasswordToken -resetPasswordExpires')
+            .populate('role', 'name description isAdmin');
 
-        res.status(201).json(userResponse);
+        res.status(201).json(savedUser);
     } catch (error) {
         logger.error('Error creating user:', error as Error);
         res.status(500).json({ message: 'Server error' });
@@ -154,16 +159,11 @@ export const createUser = async (req: AuthRequest, res: Response) => {
 export const updateUser = async (req: AuthRequest, res: Response) => {
     try {
         const { id } = req.params;
-        const { username, email, password, role, isActive, mfaEnabled } = req.body;
+        const { username, email, password, isActive, mfaEnabled, role } = req.body;
 
         const user = await User.findById(id);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
-        }
-
-        // Validate role if provided
-        if (role && !['ADMIN', 'CERT_MANAGER', 'READ_ONLY'].includes(role)) {
-            return res.status(400).json({ message: 'Invalid role' });
         }
 
         const isExternalAuth = user.authProvider !== 'local';
@@ -199,9 +199,12 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
             user.password = password;
         }
 
-        // Role and isActive can be updated for all users
-        if (role !== undefined) user.role = role;
         if (isActive !== undefined) user.isActive = isActive;
+
+        // Update role
+        if (role !== undefined) {
+            (user as any).role = role || undefined;
+        }
 
         // Handle MFA toggle - available for local and LDAP users
         if (mfaEnabled !== undefined) {
@@ -225,16 +228,17 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
 
         logger.info(`Updated user ${user.username} (provider: ${user.authProvider})`);
 
-
         await user.save();
 
         // Log user update
         await ActivityLogService.logUserUpdated(user.username, (user._id).toString(), req);
 
-        // Return user without sensitive data
-        const { password: _pwd, mfaSecret: _mfa, resetPasswordToken: _token, resetPasswordExpires: _exp, ...userResponse } = user.toObject();
+        // Return user without sensitive data, with role populated
+        const updatedUser = await User.findById(user._id)
+            .select('-password -mfaSecret -resetPasswordToken -resetPasswordExpires')
+            .populate('role', 'name description isAdmin');
 
-        res.json(userResponse);
+        res.json(updatedUser);
     } catch (error) {
         logger.error('Error updating user:', error as Error);
         res.status(500).json({ message: 'Server error' });

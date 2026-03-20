@@ -4,7 +4,6 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../services/auth.service';
@@ -21,7 +20,7 @@ interface ActiveJob {
 @Component({
     selector: 'app-jobs',
     standalone: true,
-    imports: [CommonModule, TranslateModule, ButtonModule, TagModule, ToastModule, TooltipModule, DatePipe],
+    imports: [CommonModule, TranslateModule, ButtonModule, TagModule, TooltipModule, DatePipe],
     providers: [MessageService],
     templateUrl: './jobs.html'
 })

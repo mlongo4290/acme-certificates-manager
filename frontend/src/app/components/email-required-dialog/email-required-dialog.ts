@@ -6,7 +6,6 @@ import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
-import { ToastModule } from 'primeng/toast';
 import { AuthService } from '../../services/auth.service';
 import { UserService } from '../../services/user.service';
 
@@ -20,7 +19,6 @@ import { UserService } from '../../services/user.service';
         DialogModule,
         InputTextModule,
         ButtonModule,
-        ToastModule
     ],
     templateUrl: './email-required-dialog.html'
 })

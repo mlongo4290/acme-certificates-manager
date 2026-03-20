@@ -6,13 +6,13 @@ import {
     getRecentActivityLogs,
     updateActivityLogConfig,
 } from '../controllers/activityLog.controller';
-import { authMiddleware, requireAdmin } from '../middleware/auth';
+import { authMiddleware, requireAdmin, requirePermission } from '../middleware/auth';
 
 const router = express.Router();
 
-// Read: all authenticated users
-router.get('/', authMiddleware as any, getActivityLogs);
-router.get('/recent', authMiddleware as any, getRecentActivityLogs);
+// Read: requires activityLogs:read
+router.get('/', authMiddleware as any, requirePermission('activityLogs', 'read') as any, getActivityLogs);
+router.get('/recent', authMiddleware as any, requirePermission('activityLogs', 'read') as any, getRecentActivityLogs);
 
 // Config and cleanup: ADMIN only
 router.get('/config', authMiddleware as any, requireAdmin as any, getActivityLogConfig);

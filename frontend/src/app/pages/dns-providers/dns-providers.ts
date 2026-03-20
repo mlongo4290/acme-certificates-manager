@@ -16,10 +16,10 @@ import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
-import { ToastModule } from 'primeng/toast';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
 import { DnsProvider, DnsProviderService, ProviderTypeMetadata } from '../../services/dns-provider.service';
+import { AuthService } from '../../services/auth.service';
 
 // Credential field template interface
 interface CredentialField {
@@ -48,7 +48,7 @@ interface CredentialField {
         TagModule,
         TooltipModule,
         ConfirmDialogModule,
-        ToastModule,
+        
         ToggleSwitchModule,
         IconFieldModule,
         InputIconModule,
@@ -61,6 +61,9 @@ export class DnsProvidersComponent implements OnInit {
     private messageService = inject(MessageService);
     private confirmationService = inject(ConfirmationService);
     private translateService = inject(TranslateService);
+    private authService = inject(AuthService);
+
+    hasPermission = (resource: string, level: 'read' | 'write') => this.authService.hasPermission(resource, level);
 
     // Expose Object to template
     Object = Object;

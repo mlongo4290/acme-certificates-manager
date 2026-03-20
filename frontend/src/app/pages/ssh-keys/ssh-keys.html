@@ -4,9 +4,11 @@
 
     <div class="flex justify-content-between align-items-center mb-5 gap-3">
         <div class="flex gap-2">
+            @if (hasPermission('sshKeys', 'write')) {
             <p-button [label]="'sshKeys.create' | translate" icon="pi pi-plus" (onClick)="showCreateDialog()"
                 severity="primary">
             </p-button>
+            }
         </div>
     </div>
 
@@ -49,6 +51,7 @@
                         <p-button icon="pi pi-copy" [pTooltip]="'common.copyToClipboard' | translate"
                             severity="secondary" size="small" [text]="true" (onClick)="copyToClipboard(key.publicKey)">
                         </p-button>
+                        @if (hasPermission('sshKeys', 'write')) {
                         <p-button icon="pi pi-refresh" [pTooltip]="'sshKeys.rotateKey' | translate" severity="warn"
                             size="small" [text]="true" (onClick)="rotateKey(key)">
                         </p-button>
@@ -58,6 +61,7 @@
                         <p-button icon="pi pi-trash" [pTooltip]="'common.delete' | translate" severity="danger"
                             size="small" [text]="true" (onClick)="deleteKey(key)">
                         </p-button>
+                        }
                     </div>
                 </td>
             </tr>
@@ -148,5 +152,5 @@
     </ng-template>
 </p-dialog>
 
-<p-toast></p-toast>
+
 <p-confirmDialog></p-confirmDialog>

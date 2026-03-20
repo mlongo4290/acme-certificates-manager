@@ -5,17 +5,21 @@
 
     <div class="flex justify-content-between align-items-center mb-5 gap-3">
         <div class="flex flex-col gap-2">
+            @if (!isReadOnly()) {
             <div class="flex items-center gap-2">
                 <p-button [label]="'certificates.create' | translate" icon="pi pi-plus" (onClick)="showCreateDialog()"
                     severity="primary">
                 </p-button>
             </div>
+            }
             @if (selectedCertificates.length > 0) {
             <div class="flex items-center gap-2 bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-700 rounded px-3 py-2">
                 <span class="text-sm font-medium text-primary">{{ selectedCertificates.length }} {{ 'certificates.bulk.selected' | translate }}</span>
+                @if (!isReadOnly()) {
                 <p-button [label]="'certificates.actions.enable' | translate" icon="pi pi-play-circle" severity="success" size="small" (onClick)="bulkEnable()" [loading]="bulkActionLoading" />
                 <p-button [label]="'certificates.actions.disable' | translate" icon="pi pi-pause-circle" severity="warn" size="small" (onClick)="bulkDisable()" [loading]="bulkActionLoading" />
                 <p-button [label]="'common.delete' | translate" icon="pi pi-trash" severity="danger" size="small" (onClick)="bulkDelete()" [loading]="bulkActionLoading" />
+                }
                 <p-button [label]="'certificates.bulk.exportZip' | translate" icon="pi pi-file-export" severity="secondary" size="small" (onClick)="bulkExportZip()" [loading]="bulkActionLoading" />
                 <p-button [label]="'common.cancel' | translate" icon="pi pi-times" severity="secondary" size="small" [text]="true" (onClick)="selectedCertificates = []" />
             </div>
@@ -94,13 +98,15 @@
         </ng-template>
 
         <ng-template #body let-cert>
-            <tr [class.opacity-50]="cert.enabled === false">
+            <tr>
                 <td>
                     <p-tableCheckbox [value]="cert" />
                 </td>
                 <td>
                     <div class="flex flex-col">
-                        <span class="font-semibold">{{ cert.domain }}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="font-semibold">{{ cert.domain }}</span>
+                        </div>
                         @if (cert.lastRenewalAttempt) {
                         <span class="text-xs text-gray-500">
                             {{ 'certificates.lastRenewal' | translate }}: {{ cert.lastRenewalAttempt |
@@ -199,30 +205,41 @@
                             </span>
                             }
                         </div>
+                        @if (cert.enabled === false) {
+                        <span class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                            <i class="pi pi-pause-circle mr-1"></i>{{ 'certificates.schedulingDisabled' | translate }}
+                        </span>
+                        }
                     </div>
                 </td>
                 <td>
                     <div class="flex gap-1">
-                        @if (cert.status === 'pending' || cert.status === 'error') {
-                        <p-button icon="pi pi-play" [pTooltip]="'certificates.actions.issue' | translate"
-                            tooltipPosition="top" (click)="issueCertificate(cert)"
-                            [disabled]="saving || isCertBusy(cert._id!)" severity="info" [text]="true" />
-                        } @else if (cert.status === 'expired') {
-                        <p-button icon="pi pi-refresh" [pTooltip]="'certificates.actions.renew' | translate"
-                            tooltipPosition="top" (click)="renewCertificate(cert)"
-                            [disabled]="saving || isCertBusy(cert._id!)" severity="success" [text]="true" />
-                        } @else if (cert.modified) {
-                        <p-button icon="pi pi-file-edit" [pTooltip]="'certificates.actions.reissue' | translate"
-                            tooltipPosition="top" (click)="reissueCertificate(cert)"
-                            [disabled]="saving || isCertBusy(cert._id!)" severity="warn" [text]="true" />
+                        @if (!isReadOnly()) {
+                            @if (cert.status === 'pending' || cert.status === 'error') {
+                            <p-button icon="pi pi-play" [pTooltip]="'certificates.actions.issue' | translate"
+                                tooltipPosition="top" (click)="issueCertificate(cert)"
+                                [disabled]="saving || isCertBusy(cert._id!)" severity="info" [text]="true" />
+                            } @else if (cert.status === 'expired') {
+                            <p-button icon="pi pi-refresh" [pTooltip]="'certificates.actions.renew' | translate"
+                                tooltipPosition="top" (click)="renewCertificate(cert)"
+                                [disabled]="saving || isCertBusy(cert._id!)" severity="success" [text]="true" />
+                            } @else if (cert.modified) {
+                            <p-button icon="pi pi-file-edit" [pTooltip]="'certificates.actions.reissue' | translate"
+                                tooltipPosition="top" (click)="reissueCertificate(cert)"
+                                [disabled]="saving || isCertBusy(cert._id!)" severity="warn" [text]="true" />
+                            } @else {
+                            <p-button icon="pi pi-refresh" [pTooltip]="'certificates.actions.renew' | translate"
+                                tooltipPosition="top" (click)="renewCertificate(cert)"
+                                [disabled]="saving || isCertBusy(cert._id!)" severity="success" [text]="true" />
+                            }
+                            <p-button icon="pi pi-ellipsis-v" [pTooltip]="'common.actions' | translate"
+                                tooltipPosition="top" (click)="showRowMenu($event, cert)"
+                                [disabled]="saving" severity="secondary" [text]="true" />
                         } @else {
-                        <p-button icon="pi pi-refresh" [pTooltip]="'certificates.actions.renew' | translate"
-                            tooltipPosition="top" (click)="renewCertificate(cert)"
-                            [disabled]="saving || isCertBusy(cert._id!)" severity="success" [text]="true" />
+                            <p-button icon="pi pi-ellipsis-v" [pTooltip]="'common.actions' | translate"
+                                tooltipPosition="top" (click)="showRowMenu($event, cert)"
+                                severity="secondary" [text]="true" />
                         }
-                        <p-button icon="pi pi-ellipsis-v" [pTooltip]="'common.actions' | translate"
-                            tooltipPosition="top" (click)="showRowMenu($event, cert)"
-                            [disabled]="saving" severity="secondary" [text]="true" />
                     </div>
                 </td>
             </tr>
@@ -437,7 +454,7 @@
                         <div class="flex flex-col gap-4">
                             <div class="flex items-center gap-2">
                                 <p-toggleSwitch [(ngModel)]="certificateForm.enabled" inputId="enabled" />
-                                <label for="enabled" class="font-semibold">{{ 'certificates.enabled' | translate }}</label>
+                                <label for="enabled" class="font-semibold">{{ (certificateForm.enabled ? 'certificates.actions.disableScheduling' : 'certificates.actions.enableScheduling') | translate }}</label>
                                 @if (!certificateForm.enabled) {
                                 <span class="text-sm text-orange-500 italic">{{ 'certificates.enabledHint' | translate }}</span>
                                 }
@@ -762,5 +779,5 @@
     </ng-template>
 </p-dialog>
 
-<p-toast />
+
 <p-confirmDialog />

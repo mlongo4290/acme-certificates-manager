@@ -60,6 +60,7 @@
         "activityLog": "Log attività",
         "users": "Utenti",
         "authProviders": "Provider autenticazione",
+        "roles": "Ruoli",
         "security": "Sicurezza",
         "swaggerDocs": "Documentazione API",
         "configExport": "Esporta / Importa Config"
@@ -197,11 +198,7 @@
         "authProvider": "Provider autenticazione",
         "mfa": "Autenticazione a due fattori",
         "role": "Ruolo",
-        "roles": {
-            "admin": "Amministratore",
-            "readOnly": "Sola lettura",
-            "certManager": "Gestore certificati"
-        },
+        "selectRole": "Seleziona un ruolo",
         "confirmDelete": "Sei sicuro di voler eliminare questo utente?",
         "success": {
             "created": "Utente creato con successo",
@@ -210,6 +207,7 @@
         },
         "errors": {
             "passwordRequired": "La password è obbligatoria per gli utenti locali",
+            "roleRequired": "Un ruolo è obbligatorio",
             "deleteFailed": "Eliminazione utente fallita",
             "loadFailed": "Caricamento utenti fallito",
             "saveFailed": "Salvataggio utente fallito"
@@ -304,11 +302,15 @@
         "oidcSettings": "Impostazioni OIDC",
         "samlCallbackUrl": "URL di callback SAML",
         "samlCert": "Certificato SAML",
+        "samlMetadataUrl": "URL metadati IdP",
+        "samlMetadataUrlDescription": "URL del documento di metadati SAML del provider di identità. Se fornito, l'entry point e il certificato vengono caricati automaticamente.",
         "samlEntryPoint": "URL di ingresso SAML",
         "samlIssuer": "Emittente SAML",
         "samlPrivateKey": "Chiave privata SAML",
         "samlSignatureAlgorithm": "Algoritmo di firma SAML",
         "samlSignatureAlgorithmDescription": "Algoritmo utilizzato per firmare le richieste SAML. Lascia vuoto per utilizzare l'algoritmo predefinito.",
+        "samlWantAuthnResponseSigned": "Richiedi firma risposta SAML",
+        "samlWantAuthnResponseSignedDescription": "Se disabilitato, la firma sull'envelope della risposta SAML non viene validata. Disabilitare solo se il provider di identità non firma le risposte.",
         "samlWantAssertionsSigned": "Richiedi firme alle asserzioni SAML",
         "samlWantAssertionsSignedDescription": "Se abilitato, il provider di identità SAML deve firmare le asserzioni inviate all'applicazione.",
         "samlCallbackUrlDescription": "L'URL di callback che hai configurato nel tuo provider SAML. Deve essere identico a questo valore.",
@@ -416,6 +418,7 @@
         "caAndAccount": "CA / Account",
         "expiryDate": "Data scadenza",
         "lastRenewal": "Ultimo rinnovo",
+        "schedulingDisabled": "Schedulazione disabilitata",
         "notScheduled": "Non programmato",
         "issueConfirm": "Conferma emissione certificato",
         "reissueConfirm": "Conferma riemissione certificato",
@@ -427,7 +430,8 @@
             "expiring": "In scadenza",
             "expired": "Scaduto",
             "pending": "In attesa",
-            "error": "Errore"
+            "error": "Errore",
+            "revoked": "Revocato"
         },
         "addScript": "Aggiungi script",
         "daysLeft": "giorni rimanenti",
@@ -478,12 +482,16 @@
             "downloadZip": "Scarica tutto come ZIP",
             "exportZip": "Esporta come ZIP",
             "viewDetails": "Visualizza dettagli certificato",
-            "enable": "Abilita certificato",
-            "disable": "Disabilita certificato",
-            "dryRun": "Dry Run (valida challenge DNS)"
+            "enable": "Abilita schedulazione",
+            "enableScheduling": "Abilita schedulazione",
+            "disable": "Disabilita schedulazione",
+            "disableScheduling": "Disabilita schedulazione",
+            "dryRun": "Dry Run (valida challenge DNS)",
+            "revoke": "Revoca Certificato"
         },
         "confirm": {
             "delete": "Sei sicuro di voler eliminare il certificato per '{{domain}}'?",
+            "revoke": "Sei sicuro di voler revocare il certificato per '{{domain}}'? Questa operazione non può essere annullata e il certificato non sarà più considerato valido.",
             "runScripts": "Eseguire {{count}} script post-emissione per '{{domain}}'?"
         },
         "success": {
@@ -492,7 +500,8 @@
             "deleted": "Certificato eliminato con successo",
             "downloaded": "Certificato scaricato con successo",
             "enabled": "Certificato abilitato",
-            "disabled": "Certificato disabilitato"
+            "disabled": "Certificato disabilitato",
+            "revoked": "Certificato '{{domain}}' revocato con successo"
         },
         "errors": {
             "failedToCreate": "Impossibile creare il certificato",
@@ -505,7 +514,8 @@
             "deleteFailed": "Impossibile eliminare il certificato",
             "loadFailed": "Impossibile caricare i dettagli del certificato",
             "loadLogs": "Impossibile caricare i log del certificato",
-            "exportFailed": "Esportazione certificati fallita"
+            "exportFailed": "Esportazione certificati fallita",
+            "revokeFailed": "Impossibile revocare il certificato"
         },
         "placeholders": {
             "domain": "esempio.it",
@@ -1114,6 +1124,53 @@
             "saveFailed": "Impossibile salvare il webhook",
             "deleteFailed": "Impossibile eliminare il webhook",
             "testFailed": "Impossibile testare il webhook"
+        }
+    },
+    "roles": {
+        "title": "Ruoli",
+        "description": "Gestisci i ruoli utenti e i relativi permessi sulle risorse.",
+        "create": "Crea Ruolo",
+        "edit": "Modifica Ruolo",
+        "noRoles": "Nessun ruolo trovato.",
+        "nameLabel": "Nome",
+        "descriptionLabel": "Descrizione",
+        "adminCol": "Admin",
+        "adminRole": "Ruolo admin (bypassa tutti i controlli permessi)",
+        "adminCannotDelete": "Il ruolo amministratore non può essere eliminato",
+        "permissions": "Permessi",
+        "permissionsHint": "Imposta il livello di accesso per ogni risorsa: Nessuno (nessun accesso), Lettura (solo visualizzazione), Scrittura (accesso completo).",
+        "resource": "Risorsa",
+        "permissionLevel": "Livello di permesso",
+        "namePlaceholder": "es. Gestori Certificati",
+        "descriptionPlaceholder": "Descrizione opzionale",
+        "confirmDelete": "Sei sicuro di voler eliminare il ruolo \"{{name}}\"?",
+        "permissionOptions": {
+            "none": "Nessuno",
+            "read": "Lettura",
+            "write": "Scrittura"
+        },
+        "resources": {
+            "certificates": "Certificati",
+            "acmeCa": "Certificate Authority ACME",
+            "acmeAccounts": "Account ACME",
+            "dnsProviders": "Provider DNS",
+            "sshKeys": "Chiavi SSH",
+            "scripts": "Script post-emissione",
+            "webhooks": "Webhook",
+            "activityLogs": "Log attività",
+            "settings": "Impostazioni",
+            "jobs": "Job",
+            "renewalCalendar": "Calendario rinnovi"
+        },
+        "success": {
+            "created": "Ruolo creato con successo",
+            "updated": "Ruolo aggiornato con successo",
+            "deleted": "Ruolo eliminato con successo"
+        },
+        "errors": {
+            "loadFailed": "Impossibile caricare i ruoli",
+            "saveFailed": "Impossibile salvare il ruolo",
+            "deleteFailed": "Impossibile eliminare il ruolo"
         }
     },
     "configExport": {

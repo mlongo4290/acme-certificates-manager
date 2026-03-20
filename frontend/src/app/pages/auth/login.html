@@ -65,10 +65,12 @@
                                 <i class="pi pi-user"></i>
                                 } @else if (provider.type === 'ldap') {
                                 <i class="pi pi-shield"></i>
-                                } @else if (provider.type === 'oauth2') {
-                                <i class="pi pi-external-link"></i>
                                 } @else if (provider.type === 'azure-ad') {
                                 <i class="pi pi-microsoft"></i>
+                                } @else if (provider.type === 'oidc') {
+                                <i class="pi pi-id-card"></i>
+                                } @else {
+                                <i class="pi pi-external-link"></i>
                                 }
                                 {{ provider.name }}
                             </span>

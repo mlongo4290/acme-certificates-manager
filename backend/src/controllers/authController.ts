@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import passport from 'passport';
 import { generateToken } from '../middleware/auth';
 import { AuthProvider } from '../models/AuthProvider';
+import { Role } from '../models/Role';
 import { MfaTrustedDevice } from '../models/MfaTrustedDevice';
 import { User } from '../models/User';
 import { ActivityLogService } from '../services/activityLog.service';
@@ -12,6 +13,33 @@ import { Logger } from '../services/logger.service';
 export { verifyMfaLogin } from './authController_mfa';
 
 const logger = new Logger('AuthController');
+
+/**
+ * Load role permissions for a user and build the full token payload.
+ * Returns { isAdmin, permissions }.
+ */
+export const buildRolePermissions = async (user: any): Promise<{ isAdmin: boolean; permissions?: Record<string, string> }> => {
+    if (!user.role) return { isAdmin: false };
+
+    try {
+        const role = await Role.findById(user.role);
+        if (!role) return { isAdmin: false };
+
+        if ((role as any).isAdmin) return { isAdmin: true };
+
+        const permsObj = (role as any).permissions;
+        if (!permsObj) return { isAdmin: false };
+
+        const raw = permsObj.toObject ? permsObj.toObject() : permsObj;
+        const permissions: Record<string, string> = {};
+        for (const key of Object.keys(raw)) {
+            permissions[key] = raw[key];
+        }
+        return { isAdmin: false, permissions };
+    } catch {
+        return { isAdmin: false };
+    }
+};
 
 const authenticateUser = (strategyName: string, req: Request): Promise<any> => {
     return new Promise((resolve, reject) => {
@@ -58,6 +86,9 @@ export const login = async (req: Request, res: Response) => {
 
                 const user = await authenticateUser(strategyName, req);
 
+                // Load role permissions
+                const { isAdmin, permissions } = await buildRolePermissions(user);
+
                 // Check if MFA is enabled
                 if (user.mfaEnabled) {
                     // Check if device is already trusted
@@ -79,7 +110,8 @@ export const login = async (req: Request, res: Response) => {
                                 username: user.username,
                                 authProvider: user.authProvider,
                                 authProviderName: user.authProviderName,
-                                role: user.role
+                                isAdmin,
+                                permissions
                             });
 
                             // Log successful login
@@ -93,7 +125,8 @@ export const login = async (req: Request, res: Response) => {
                                     username: user.username,
                                     authProvider: user.authProvider,
                                     authProviderName: user.authProviderName,
-                                    role: user.role
+                                    isAdmin,
+                                    permissions
                                 }
                             });
                             return;
@@ -115,7 +148,8 @@ export const login = async (req: Request, res: Response) => {
                     username: user.username,
                     authProvider: user.authProvider,
                     authProviderName: user.authProviderName,
-                    role: user.role
+                    isAdmin,
+                    permissions
                 });
 
                 // Log successful login
@@ -128,7 +162,8 @@ export const login = async (req: Request, res: Response) => {
                         username: user.username,
                         authProvider: user.authProvider,
                         authProviderName: user.authProviderName,
-                        role: user.role
+                        isAdmin,
+                        permissions
                     }
                 });
                 return;
@@ -163,7 +198,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
             return;
         }
 
-        const user = await User.findOne({ username: username.toLowerCase() });
+        const user = await User.findOne({ username: username.toLowerCase(), authProvider: 'local' });
 
         if (!user) {
             // Don't reveal if user exists

@@ -12,12 +12,12 @@ describe('adminGuard', () => {
         routerSpy = createRouterSpy('/');
 
         const isAuthenticatedSignal = jasmine.createSpy('isAuthenticated').and.returnValue(false);
-        const hasRoleSpy = jasmine.createSpy('hasRole').and.returnValue(false);
+        const isAdminSpy = jasmine.createSpy('isAdmin').and.returnValue(false);
 
-        authServiceSpy = jasmine.createSpyObj('AuthService', ['hasRole'], {
+        authServiceSpy = jasmine.createSpyObj('AuthService', ['isAdmin'], {
             isAuthenticated: isAuthenticatedSignal
         });
-        authServiceSpy.hasRole = hasRoleSpy;
+        authServiceSpy.isAdmin = isAdminSpy;
 
         TestBed.configureTestingModule({
             providers: [
@@ -27,22 +27,22 @@ describe('adminGuard', () => {
         });
     });
 
-    it('should allow access when user is authenticated and has ADMIN role', () => {
+    it('should allow access when user is authenticated and is admin', () => {
         authServiceSpy.isAuthenticated.and.returnValue(true);
-        authServiceSpy.hasRole.and.returnValue(true);
+        authServiceSpy.isAdmin.and.returnValue(true);
 
         const result = TestBed.runInInjectionContext(() =>
             adminGuard({} as any, {} as any)
         );
 
         expect(result).toBeTrue();
-        expect(authServiceSpy.hasRole).toHaveBeenCalledWith('ADMIN');
+        expect(authServiceSpy.isAdmin).toHaveBeenCalled();
         expect(routerSpy.navigate).not.toHaveBeenCalled();
     });
 
     it('should redirect to access denied when user is not authenticated', () => {
         authServiceSpy.isAuthenticated.and.returnValue(false);
-        authServiceSpy.hasRole.and.returnValue(false);
+        authServiceSpy.isAdmin.and.returnValue(false);
 
         const result = TestBed.runInInjectionContext(() =>
             adminGuard({} as any, {} as any)
@@ -52,27 +52,27 @@ describe('adminGuard', () => {
         expect(routerSpy.navigate).toHaveBeenCalledWith(['/auth/access']);
     });
 
-    it('should redirect to access denied when user is authenticated but not ADMIN', () => {
+    it('should redirect to access denied when user is authenticated but not admin', () => {
         authServiceSpy.isAuthenticated.and.returnValue(true);
-        authServiceSpy.hasRole.and.returnValue(false);
+        authServiceSpy.isAdmin.and.returnValue(false);
 
         const result = TestBed.runInInjectionContext(() =>
             adminGuard({} as any, {} as any)
         );
 
         expect(result).toBeFalse();
-        expect(authServiceSpy.hasRole).toHaveBeenCalledWith('ADMIN');
+        expect(authServiceSpy.isAdmin).toHaveBeenCalled();
         expect(routerSpy.navigate).toHaveBeenCalledWith(['/auth/access']);
     });
 
-    it('should check for ADMIN role specifically', () => {
+    it('should check isAdmin specifically', () => {
         authServiceSpy.isAuthenticated.and.returnValue(true);
-        authServiceSpy.hasRole.and.returnValue(false);
+        authServiceSpy.isAdmin.and.returnValue(false);
 
         TestBed.runInInjectionContext(() =>
             adminGuard({} as any, {} as any)
         );
 
-        expect(authServiceSpy.hasRole).toHaveBeenCalledWith('ADMIN');
+        expect(authServiceSpy.isAdmin).toHaveBeenCalled();
     });
 });

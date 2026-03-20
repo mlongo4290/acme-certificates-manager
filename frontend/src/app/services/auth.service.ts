@@ -20,10 +20,20 @@ export interface LoginResponse {
     user?: {
         id: string;
         username: string;
-        authProvider: 'local' | 'ldap' | 'oauth2' | 'azure-ad' | 'oidc' | 'saml';
+        authProvider: 'local' | 'ldap' | 'azure-ad' | 'oidc';
         authProviderName?: string;
-        role: 'ADMIN' | 'CERT_MANAGER' | 'READ_ONLY';
+        isAdmin: boolean;
+        permissions?: Record<string, string>;
     };
+}
+
+export interface CurrentUser {
+    id: string;
+    username: string;
+    authProvider: 'local' | 'ldap' | 'azure-ad' | 'oidc';
+    authProviderName?: string;
+    isAdmin: boolean;
+    permissions?: Record<string, string>;
 }
 
 @Injectable({
@@ -34,7 +44,7 @@ export class AuthService {
     private readonly TOKEN_KEY = 'auth_token';
 
     isAuthenticated = signal<boolean>(this.isTokenValid());
-    currentUser = signal<{ id: string; username: string; authProvider: 'local' | 'ldap' | 'oauth2' | 'azure-ad' | 'oidc' | 'saml'; authProviderName?: string; role: 'ADMIN' | 'CERT_MANAGER' | 'READ_ONLY' } | null>(null);
+    currentUser = signal<CurrentUser | null>(null);
 
     constructor(private http: HttpClient, private router: Router) {
         // Check if user is already authenticated on init
@@ -119,8 +129,28 @@ export class AuthService {
         }
     }
 
-    hasRole(role: 'ADMIN' | 'CERT_MANAGER' | 'READ_ONLY'): boolean {
-        return this.currentUser()?.role === role;
+    /** Returns true if user is an admin */
+    isAdmin(): boolean {
+        return this.currentUser()?.isAdmin === true;
+    }
+
+    /**
+     * Returns true if the current user has at least the required permission level
+     * for the given resource. isAdmin bypasses all checks.
+     */
+    hasPermission(resource: string, level: 'read' | 'write'): boolean {
+        const user = this.currentUser();
+        if (!user) return false;
+        if (user.isAdmin) return true;
+
+        const levelOrder: Record<string, number> = { none: 0, read: 1, write: 2 };
+        const userLevel = user.permissions?.[resource] || 'none';
+        return (levelOrder[userLevel] ?? 0) >= (levelOrder[level] ?? 1);
+    }
+
+    /** Returns true if user has no write permissions */
+    isReadOnly(): boolean {
+        return !this.isAdmin() && !this.hasPermission('certificates', 'write');
     }
 
     private loadUserFromToken(): void {
@@ -145,7 +175,8 @@ export class AuthService {
                     username: payload.username,
                     authProvider: payload.authProvider,
                     authProviderName: payload.authProviderName,
-                    role: payload.role
+                    isAdmin: payload.isAdmin === true,
+                    permissions: payload.permissions
                 });
             } catch (error) {
                 this.logout();

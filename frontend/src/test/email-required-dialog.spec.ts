@@ -21,7 +21,7 @@ describe('EmailRequiredDialogComponent', () => {
             id: '1',
             username: 'testuser',
             authProvider: 'local',
-            role: 'ADMIN'
+            isAdmin: true
         });
 
         authServiceSpy = jasmine.createSpyObj('AuthService', [], {
@@ -91,7 +91,7 @@ describe('EmailRequiredDialogComponent', () => {
                 id: '1',
                 username: 'testuser',
                 authProvider: 'ldap',
-                role: 'ADMIN'
+                isAdmin: true
             });
 
             component.ngOnInit();

@@ -1,4 +1,5 @@
 import { PostIssueScript, PostIssueScriptsService } from '@/services/post-issue-scripts.service';
+import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -12,7 +13,6 @@ import { InputGroupModule } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 import { InputTextModule } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
-import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
@@ -26,7 +26,7 @@ import { TooltipModule } from 'primeng/tooltip';
         DialogModule,
         InputTextModule,
         ConfirmDialogModule,
-        ToastModule,
+        
         CheckboxModule,
         TranslateModule,
         InputGroupModule,
@@ -41,6 +41,9 @@ export class PostIssueScriptsComponent implements OnInit {
     private messageService = inject(MessageService);
     private confirmationService = inject(ConfirmationService);
     private translateService = inject(TranslateService);
+    private authService = inject(AuthService);
+
+    hasPermission = (resource: string, level: 'read' | 'write') => this.authService.hasPermission(resource, level);
 
     // Expose Object to template
     Object = Object;

@@ -15,7 +15,7 @@ import { applyBlackoutWindows, getBlackoutWindows } from '../utils/renewalSchedu
 import { AcmeService } from './acme.service';
 import { ActivityLogService } from './activityLog.service';
 import { Logger } from './logger.service';
-import { notificationService } from './notification.service';
+import { notificationService, ScriptResult } from './notification.service';
 import { IScheduler } from './scheduler.interface';
 
 const execAsync = promisify(exec);
@@ -44,8 +44,8 @@ export class CertificateService {
     /**
      * Issue or renew a certificate
      */
-    async issueCertificate(certificateId: string, options: { dryRun?: boolean } = {}) {
-        const { dryRun = false } = options;
+    async issueCertificate(certificateId: string, options: { dryRun?: boolean; suppressNotification?: boolean } = {}) {
+        const { dryRun = false, suppressNotification = false } = options;
         const certificate = await Certificate.findById(certificateId);
         if (!certificate) {
             throw new Error('Certificate not found');
@@ -205,22 +205,27 @@ export class CertificateService {
                 throw new Error(`Challenge type ${certificate.challengeType} not yet implemented`);
             }
 
+            let scriptResults: ScriptResult[] = [];
             if (!dryRun) {
-                // Run post-issuance script (new structure)
-                await this.runPostIssueScript(certificate);
+                // Run post-issuance scripts and collect results
+                scriptResults = await this.runPostIssueScript(certificate);
 
-                // Send success notification
-                const expiryDate = getCertificateExpiryDate(certificate.certificate!);
-                await notificationService.sendNotification('certificate_issued_success', {
-                    certificateId: certificateId,
-                    domain: certificate.domain,
-                    expiryDate: expiryDate?.toISOString(),
-                }).catch(err => certLogger.error(`Failed to send notification: ${err.message}`));
+                // Send grouped notification (cert + scripts) unless caller handles it
+                if (!suppressNotification) {
+                    const expiryDate = getCertificateExpiryDate(certificate.certificate!);
+                    await notificationService.sendNotification('certificate_issued_success', {
+                        certificateId: certificateId,
+                        domain: certificate.domain,
+                        expiryDate: expiryDate?.toISOString(),
+                        scriptResults,
+                    }).catch(err => certLogger.error(`Failed to send notification: ${err.message}`));
+                }
             }
 
             return {
                 success: true,
-                message: 'Certificate issued successfully'
+                message: 'Certificate issued successfully',
+                scriptResults,
             };
         } catch (error: any) {
             certLogger.error(`Error: ${error.message}`);
@@ -255,8 +260,8 @@ export class CertificateService {
         }
 
         try {
-            // Reuse the issueCertificate method for renewal
-            await this.issueCertificate(certificateId);
+            // Reuse the issueCertificate method for renewal, suppress its own notification
+            const issueResult = await this.issueCertificate(certificateId, { suppressNotification: true });
 
             // Log successful renewal (automatic renewal from scheduler)
             await ActivityLogService.logCertificateRenewed(certificate.domain, certificateId);
@@ -277,11 +282,12 @@ export class CertificateService {
                         this.logger.info(`Re-scheduled next renewal for ${certificate.domain} at ${nextRenewalDate.toISOString()}`);
                     }
 
-                    // Send renewal success notification
+                    // Send single grouped notification (cert + scripts)
                     await notificationService.sendNotification('certificate_renewed_success', {
                         certificateId: certificateId,
                         domain: certificate.domain,
                         expiryDate: expiryDate?.toISOString(),
+                        scriptResults: issueResult.scriptResults,
                     }).catch(err => this.logger.error(`Failed to send notification: ${err.message}`));
                 }
             }
@@ -415,10 +421,11 @@ export class CertificateService {
 
 
     /**
-     * Run the post-issue scripts for a certificate
+     * Run the post-issue scripts for a certificate.
+     * Returns the per-script results; notifications are handled by the caller.
      */
-    private async runPostIssueScript(cert: any): Promise<void> {
-        if (!cert.postIssueScripts || cert.postIssueScripts.length === 0) return;
+    private async runPostIssueScript(cert: any): Promise<ScriptResult[]> {
+        if (!cert.postIssueScripts || cert.postIssueScripts.length === 0) return [];
 
         await cert.populate('postIssueScripts.script');
         await cert.populate({
@@ -426,7 +433,7 @@ export class CertificateService {
             select: '+privateKey'
         });
 
-        let allSuccess = true;
+        const results: ScriptResult[] = [];
 
         for (let i = 0; i < cert.postIssueScripts.length; i++) {
             const scriptEntry = cert.postIssueScripts[i];
@@ -434,37 +441,25 @@ export class CertificateService {
 
             if (!script || !script.path) {
                 this.logger.error(`Script ${i + 1} not found or has no path after population`);
-                allSuccess = false;
+                results.push({ name: `Script ${i + 1}`, success: false, error: 'Script not found or missing path' });
                 continue;
             }
 
             try {
                 await this.executeScript(cert, script, scriptEntry.vars, scriptEntry.sshKey, i + 1, cert.postIssueScripts.length);
-            } catch (error) {
-                allSuccess = false;
+                results.push({ name: script.name, success: true });
+            } catch (error: any) {
+                results.push({ name: script.name, success: false, error: error.message });
             }
         }
 
         // Update script execution status
+        const allSuccess = results.every(r => r.success);
         cert.lastScriptExecution = new Date();
         cert.lastScriptStatus = allSuccess ? 'success' : 'failed';
         await cert.save();
 
-        // Send notification for script execution
-        if (allSuccess) {
-            await notificationService.sendNotification('post_script_success', {
-                certificateId: cert._id.toString(),
-                domain: cert.domain,
-                scriptName: cert.postIssueScripts.map((s: any) => s.script?.name).join(', '),
-            }).catch(err => this.logger.error(`Failed to send notification: ${err.message}`));
-        } else {
-            await notificationService.sendNotification('post_script_failed', {
-                certificateId: cert._id.toString(),
-                domain: cert.domain,
-                scriptName: cert.postIssueScripts.map((s: any) => s.script?.name).join(', '),
-                error: 'One or more scripts failed',
-            }).catch(err => this.logger.error(`Failed to send notification: ${err.message}`));
-        }
+        return results;
     }
 
     /**
@@ -686,6 +681,43 @@ export class CertificateService {
                 this.logger.error(`Failed to cleanup temp directory ${tempDir}: ${cleanupError}`);
             }
         }
+    }
+
+    async revokeCertificate(certificateId: string, reason: number = 0): Promise<void> {
+        const certificate = await Certificate.findById(certificateId)
+            .populate('certificateAuthority')
+            .populate('acmeAccount');
+
+        if (!certificate) throw new Error('Certificate not found');
+        if (!certificate.certificate) throw new Error('No certificate data stored — cannot revoke');
+
+        const ca = await AcmeCa.findById(certificate.certificateAuthority);
+        if (!ca) throw new Error('Certificate Authority not found');
+
+        const acmeAccount = await AcmeAccount.findById(certificate.acmeAccount).select('+accountKeyJwk');
+        if (!acmeAccount) throw new Error('ACME account not found');
+        if (!acmeAccount.accountKeyJwk) throw new Error('ACME account has no private key stored');
+
+        const decryptedKeyJson = decrypt(acmeAccount.accountKeyJwk);
+        const accountKeyJwk = JSON.parse(decryptedKeyJson);
+
+        this.logger.info(`Revoking certificate for ${certificate.domain} (reason: ${reason})`);
+
+        const result = await this.acmeService.revokeCertificate(
+            ca.server,
+            accountKeyJwk,
+            certificate.certificate,
+            reason
+        );
+
+        if (!result.success) throw new Error(result.message);
+
+        await Certificate.findByIdAndUpdate(certificateId, {
+            status: 'revoked',
+            autoRenewal: false,
+        });
+
+        this.logger.info(`Certificate ${certificate.domain} revoked successfully`);
     }
 
 }
