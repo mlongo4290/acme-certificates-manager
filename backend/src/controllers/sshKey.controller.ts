@@ -73,7 +73,7 @@ export class SshKeyController {
         });
     });
 
-    private buildFilterQuery(field: string, value: any, matchMode: string): any {
+    private buildFilterQuery(_field: string, value: any, matchMode: string): any {
         switch (matchMode) {
             case 'contains':
                 return { $regex: value, $options: 'i' };
@@ -131,9 +131,9 @@ export class SshKeyController {
 
         // Log activity
         await ActivityLogService.log(
-            `SSH key "${name}" created`,
+            'sshKeyCreated',
             req,
-            { action: 'SSH Key Created', sshKeyId: newKey._id.toString(), name }
+            { resourceType: 'sshKey', resourceId: newKey._id.toString(), resourceName: name }
         );
 
         // Return without private key
@@ -180,9 +180,9 @@ export class SshKeyController {
 
         // Log activity
         await ActivityLogService.log(
-            `SSH key "${key.name}" updated`,
+            'sshKeyUpdated',
             req,
-            { action: 'SSH Key Updated', sshKeyId: key._id.toString(), name: key.name }
+            { resourceType: 'sshKey', resourceId: key._id.toString(), resourceName: key.name }
         );
 
         // Return without private key
@@ -205,9 +205,9 @@ export class SshKeyController {
 
         // Log activity
         await ActivityLogService.log(
-            `SSH key "${keyName}" deleted`,
+            'sshKeyDeleted',
             req,
-            { action: 'SSH Key Deleted', sshKeyId: keyId, name: keyName }
+            { resourceType: 'sshKey', resourceId: keyId, resourceName: keyName }
         );
 
         res.json({ message: 'SSH_KEY_DELETED' });

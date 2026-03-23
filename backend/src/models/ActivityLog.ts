@@ -38,7 +38,16 @@ const activityLogSchema = new Schema(
                 'postScriptFailed',
                 'postScriptCreated',
                 'postScriptUpdated',
-                'postScriptDeleted'
+                'postScriptDeleted',
+                'sshKeyCreated',
+                'sshKeyUpdated',
+                'sshKeyDeleted',
+                'roleCreated',
+                'roleUpdated',
+                'roleDeleted',
+                'webhookCreated',
+                'webhookUpdated',
+                'webhookDeleted'
             ],
             index: true,
         },
