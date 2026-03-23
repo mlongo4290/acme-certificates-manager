@@ -52,6 +52,7 @@
         "moveDown": "Move down",
         "clone": "Clone",
         "edit": "Edit",
+        "noPermission": "No permission to view this data",
         "seconds": "seconds",
         "pleaseWait": "Please wait...",
         "type": "Type"

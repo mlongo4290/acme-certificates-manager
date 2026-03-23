@@ -18,7 +18,7 @@
     </div>
 </p-card>
 }
-@if(showDns) {
+@if(showDns && authService.hasPermission('dnsProviders', 'read')) {
 <p-card class="col-span-12 xl:col-span-4">
     <ng-template #subtitle>
         <span translate>dashboard.charts.dnsDistribution</span>

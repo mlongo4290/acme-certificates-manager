@@ -1,4 +1,5 @@
 import { DnsProviderService } from '@/services/dns-provider.service';
+import { AuthService } from '@/services/auth.service';
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit } from '@angular/core';
 import { TranslateDirective, TranslateModule } from '@ngx-translate/core';
@@ -13,6 +14,7 @@ import { CardModule } from 'primeng/card';
 })
 export class DnsProvidersStatusWidget implements OnInit {
     private dnsProviderService = inject(DnsProviderService);
+    public authService = inject(AuthService);
 
     totalProviders: number = 0;
     activeProviders: number = 0;
@@ -25,6 +27,10 @@ export class DnsProvidersStatusWidget implements OnInit {
 
     private loadDnsProvidersStats() {
         this.loading = true;
+        if (!this.authService.hasPermission('dnsProviders', 'read')) {
+            this.loading = false;
+            return;
+        }
         this.dnsProviderService.getAllProviders().subscribe((response) => {
             this.totalProviders = response.data.length;
             this.activeProviders = response.data.filter(p => p.enabled).length;

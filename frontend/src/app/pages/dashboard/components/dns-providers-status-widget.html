@@ -8,6 +8,12 @@
         <i class="pi pi-spin pi-spinner text-4xl text-muted-color"></i>
     </div>
     }
+    @else if(!authService.hasPermission('dnsProviders', 'read')) {
+    <div class="text-center py-4 text-muted-color">
+        <i class="pi pi-lock text-2xl mb-2"></i>
+        <p class="text-sm" translate>common.noPermission</p>
+    </div>
+    }
     @else {
     <div class="flex justify-between items-center mb-2">
         <span translate>dashboard.dnsProviders.total</span>

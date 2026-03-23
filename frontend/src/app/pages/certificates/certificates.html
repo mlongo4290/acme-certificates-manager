@@ -130,7 +130,7 @@
                     <div class="flex flex-col gap-1">
                         <p-tag [value]="getChallengeTypeLabel(cert.challengeType)"
                             [severity]="cert.challengeType === 'dns-01' ? 'info' : 'secondary'" />
-                        @if (cert.challengeType === 'dns-01' && cert.dnsProvider) {
+                        @if (authService.hasPermission('dnsProviders', 'read') && cert.challengeType === 'dns-01' && cert.dnsProvider) {
                         <span class="text-xs text-surface-500 dark:text-surface-400">
                             <i class="pi pi-cloud mr-1"></i>{{ getDnsProviderLabel(cert.dnsProvider) }}
                         </span>
@@ -139,12 +139,12 @@
                 </td>
                 <td>
                     <div class="flex flex-col gap-1">
-                        @if (cert.certificateAuthority?.name) {
+                        @if (authService.hasPermission('acmeCa', 'read') && cert.certificateAuthority?.name) {
                         <span class="text-sm font-medium">
                             <i class="pi pi-globe mr-1 text-surface-400"></i>{{ cert.certificateAuthority.name }}
                         </span>
                         }
-                        @if (cert.acmeAccount?.name) {
+                        @if (authService.hasPermission('acmeAccounts', 'read') && cert.acmeAccount?.name) {
                         <span class="text-xs text-surface-500 dark:text-surface-400">
                             <i class="pi pi-user mr-1"></i>{{ cert.acmeAccount.name }}
                         </span>
@@ -371,7 +371,9 @@
                                     }}</small>
                             </div>
 
+                            @if (authService.hasPermission('acmeCa', 'read') || authService.hasPermission('acmeAccounts', 'read')) {
                             <div class="grid grid-cols-2 gap-4">
+                                @if (authService.hasPermission('acmeCa', 'read')) {
                                 <div class="flex flex-col gap-2">
                                     <label for="certificateAuthority" class="font-semibold">{{
                                         'certificates.certificateAuthority'
@@ -385,7 +387,9 @@
                                         translate
                                         }}</small>
                                 </div>
+                                }
 
+                                @if (authService.hasPermission('acmeAccounts', 'read')) {
                                 <div class="flex flex-col gap-2">
                                     <label for="acmeAccount" class="font-semibold">{{ 'certificates.acmeAccount' |
                                         translate
@@ -398,9 +402,11 @@
                                     <small class="text-gray-500">{{ 'certificates.hints.acmeAccount' | translate
                                         }}</small>
                                 </div>
+                                }
                             </div>
+                            }
 
-                            @if (certificateForm.challengeType === 'dns-01') {
+                            @if (authService.hasPermission('dnsProviders', 'read') && certificateForm.challengeType === 'dns-01') {
                             <div class="flex flex-col gap-2">
                                 <label for="dnsProvider" class="font-semibold">{{ 'certificates.dnsProvider' | translate
                                     }}

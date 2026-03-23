@@ -52,6 +52,7 @@
         "moveDown": "Sposta giù",
         "clone": "Clona",
         "edit": "Modifica",
+        "noPermission": "Nessun permesso per visualizzare questi dati",
         "seconds": "secondi",
         "pleaseWait": "Attendere prego...",
         "type": "Tipo"

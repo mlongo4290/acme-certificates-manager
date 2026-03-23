@@ -1,10 +1,11 @@
 import { Certificate, CertificateService } from '@/services/certificate.service';
 import { DnsProvider, DnsProviderService } from '@/services/dns-provider.service';
+import { AuthService } from '@/services/auth.service';
 import { Component, inject, Input, OnInit } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CardModule } from 'primeng/card';
 import { ChartModule } from 'primeng/chart';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
 
 const PIE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
@@ -21,6 +22,7 @@ export class CertificateChartWidget implements OnInit {
 
     private certificateService = inject(CertificateService);
     private dnsProviderService = inject(DnsProviderService);
+    public authService = inject(AuthService);
     private translate = inject(TranslateService);
 
     caDistributionData: any;
@@ -41,12 +43,14 @@ export class CertificateChartWidget implements OnInit {
 
     private loadData() {
         this.loading = true;
+        const canReadDns = this.authService.hasPermission('dnsProviders', 'read');
+
         forkJoin({
             certificates: this.certificateService.getAllCertificates(),
-            providers: this.dnsProviderService.getAllProviders()
+            providers: canReadDns ? this.dnsProviderService.getAllProviders() : of({ data: [] as DnsProvider[] })
         }).subscribe(({ certificates, providers }) => {
             this.processChallengeTypeData(certificates.data);
-            this.processProviderDistribution(certificates.data, providers.data);
+            if (canReadDns) this.processProviderDistribution(certificates.data, providers.data);
             this.processCaDistribution(certificates.data);
             this.initChartOptions();
             this.loading = false;

@@ -76,7 +76,7 @@ export class CertificatesComponent implements OnInit, OnDestroy {
     private dnsProviderService = inject(DnsProviderService);
     private acmeCaService = inject(AcmeCaService);
     private acmeAccountService = inject(AcmeAccountService);
-    private authService = inject(AuthService);
+    public authService = inject(AuthService);
     private messageService = inject(MessageService);
     private confirmationService = inject(ConfirmationService);
     private cdr = inject(ChangeDetectorRef);
@@ -200,9 +200,9 @@ export class CertificatesComponent implements OnInit, OnDestroy {
     renewalBlackoutWindows: { start: number; end: number }[] = [];
 
     ngOnInit() {
-        this.loadDnsProviders();
-        this.loadCertificateAuthorities();
-        this.loadAcmeAccounts();
+        if (this.authService.hasPermission('dnsProviders', 'read')) this.loadDnsProviders();
+        if (this.authService.hasPermission('acmeCa', 'read')) this.loadCertificateAuthorities();
+        if (this.authService.hasPermission('acmeAccounts', 'read')) this.loadAcmeAccounts();
         this.loadPostIssueScripts();
         this.loadSshKeys();
         this.loadRenewalConfig();
@@ -767,7 +767,7 @@ export class CertificatesComponent implements OnInit, OnDestroy {
                         value: p._id
                     }));
             },
-            error: (error) => {
+            error: () => {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translateService.instant('common.error'),
@@ -797,7 +797,7 @@ export class CertificatesComponent implements OnInit, OnDestroy {
                     this.onCertificateAuthorityChange(); // Load accounts for default CA
                 }
             },
-            error: (error) => {
+            error: () => {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translateService.instant('common.error'),
@@ -812,7 +812,7 @@ export class CertificatesComponent implements OnInit, OnDestroy {
             next: (response: any) => {
                 this.acmeAccounts = response.data.filter((acc: any) => acc.registeredAt); // Only registered accounts
             },
-            error: (error: any) => {
+            error: () => {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translateService.instant('common.error'),
