@@ -12,6 +12,38 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 export const seedInitialData = async () => {
+    // Migrate legacy 'groups' collection → 'roles' and user 'group' field → 'role'
+    try {
+        const db = (await import('mongoose')).connection.db;
+        if (db) {
+            const collections = await db.listCollections({ name: 'groups' }).toArray();
+            if (collections.length > 0) {
+                const groupDocs = await db.collection('groups').find({}).toArray();
+                if (groupDocs.length > 0) {
+                    const rolesColl = db.collection('roles');
+                    for (const doc of groupDocs) {
+                        await rolesColl.updateOne({ _id: doc._id }, { $set: { ...doc, isSystem: undefined } }, { upsert: true });
+                    }
+                    console.log(`✓ Migrated ${groupDocs.length} documents from 'groups' to 'roles' collection`);
+                }
+                await db.renameCollection('groups', 'groups_backup');
+                console.log('✓ Renamed legacy groups collection to groups_backup');
+            }
+            // Migrate user 'group' field → 'role'
+            const usersWithGroup = await db.collection('users').countDocuments({ group: { $exists: true }, role: { $exists: false } });
+            if (usersWithGroup > 0) {
+                await db.collection('users').updateMany(
+                    { group: { $exists: true }, role: { $exists: false } },
+                    [{ $set: { role: '$group' } }]
+                );
+                await db.collection('users').updateMany({ group: { $exists: true } }, { $unset: { group: '' } });
+                console.log(`✓ Migrated ${usersWithGroup} users: renamed 'group' field to 'role'`);
+            }
+        }
+    } catch (migrationError) {
+        console.warn('Migration step skipped or partially failed:', migrationError);
+    }
+
     // Create Administrators role first
     const administratorsRoleData = {
         name: 'Administrators',

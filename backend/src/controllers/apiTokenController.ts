@@ -6,20 +6,37 @@ import { Logger } from '../services/logger.service';
 
 const logger = new Logger('ApiTokenController');
 
-// Available scopes for non-admin users
-const USER_SCOPES: string[] = [
-    'certificates:read',
-    'certificates:write',
-    'certificates:issue',
-    'dns-providers:read',
-    'dns-providers:write',
-    'acme-ca:read',
-    'acme-accounts:read',
-    'acme-accounts:write',
-    'activity-logs:read'
-];
-
 const ADMIN_SCOPES: string[] = ['*'];
+
+// Map from JWT permission resource keys to API scope prefixes
+const RESOURCE_SCOPE_MAP: Record<string, string[]> = {
+    certificates:   ['certificates:read', 'certificates:write', 'certificates:issue'],
+    dnsProviders:   ['dns-providers:read', 'dns-providers:write'],
+    acmeCa:         ['acme-ca:read'],
+    acmeAccounts:   ['acme-accounts:read', 'acme-accounts:write'],
+    activityLogs:   ['activity-logs:read'],
+    sshKeys:        ['ssh-keys:read'],
+    webhooks:       ['webhooks:read', 'webhooks:write'],
+    scripts:        ['scripts:read'],
+    jobs:           ['jobs:read'],
+    renewalCalendar:['renewal-calendar:read'],
+    settings:       ['settings:read']
+};
+
+const LEVEL_ORDER: Record<string, number> = { none: 0, read: 1, write: 2 };
+
+/** Build the list of scopes a user is allowed to request, based on role permissions */
+const buildAllowedScopes = (permissions: Record<string, string>): string[] => {
+    const allowed: string[] = [];
+    for (const [resource, scopes] of Object.entries(RESOURCE_SCOPE_MAP)) {
+        const level = LEVEL_ORDER[permissions[resource] ?? 'none'] ?? 0;
+        for (const scope of scopes) {
+            const required = scope.endsWith(':write') || scope.endsWith(':issue') ? 2 : 1;
+            if (level >= required) allowed.push(scope);
+        }
+    }
+    return allowed;
+};
 
 // Get all API tokens for the current user
 export const getTokens = async (req: AuthRequest, res: Response) => {
@@ -53,15 +70,14 @@ export const createToken = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // Determine allowed scopes based on isAdmin flag from JWT
+        // Determine allowed scopes based on role permissions from JWT
         const isAdmin = req.user!.isAdmin;
-        const allowedScopes = isAdmin ? ADMIN_SCOPES : USER_SCOPES;
+        const allowedScopes = isAdmin ? ADMIN_SCOPES : buildAllowedScopes(req.user!.permissions ?? {});
 
         // Validate requested scopes
         let tokenScopes = scopes || allowedScopes;
 
         if (!isAdmin) {
-            // Non-admin users can only request scopes they're allowed
             tokenScopes = tokenScopes.filter((scope: string) => allowedScopes.includes(scope));
 
             if (tokenScopes.length === 0) {

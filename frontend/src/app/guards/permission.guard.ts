@@ -13,6 +13,6 @@ export const permissionGuard: CanActivateFn = (route: ActivatedRouteSnapshot, _s
         return false;
     }
     if (authService.hasPermission(resource, level)) return true;
-    router.navigate(['/auth/access']);
+    router.navigate(['/']);
     return false;
 };
