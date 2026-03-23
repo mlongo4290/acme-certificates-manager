@@ -156,7 +156,7 @@ export const getAvailableScopes = async (req: AuthRequest, res: Response) => {
         }
 
         const isAdmin = req.user!.isAdmin;
-        const scopes = isAdmin ? ADMIN_SCOPES : USER_SCOPES;
+        const scopes = isAdmin ? ADMIN_SCOPES : buildAllowedScopes(req.user!.permissions ?? {});
 
         res.json({ scopes });
     } catch (error) {
