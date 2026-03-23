@@ -615,10 +615,6 @@ export class CertificateService {
                 maxBuffer: 1024 * 1024 * 10
             });
 
-            if (stdout) {
-                this.logger.info(`Script stdout: ${stdout}`);
-            }
-
             if (stderr) {
                 this.logger.warn(`Script stderr: ${stderr}`);
             }
