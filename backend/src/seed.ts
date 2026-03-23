@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import { connect, disconnect } from 'mongoose';
+import { connect, connection, disconnect } from 'mongoose';
 import { AcmeCa } from './models/AcmeCa';
 import { AuthProvider } from './models/AuthProvider';
 import { DnsProvider } from './models/dnsProvider.model';
@@ -14,34 +14,43 @@ if (process.env.NODE_ENV !== 'production') {
 export const seedInitialData = async () => {
     // Migrate legacy 'groups' collection → 'roles' and user 'group' field → 'role'
     try {
-        const db = (await import('mongoose')).connection.db;
-        if (db) {
-            const collections = await db.listCollections({ name: 'groups' }).toArray();
-            if (collections.length > 0) {
-                const groupDocs = await db.collection('groups').find({}).toArray();
-                if (groupDocs.length > 0) {
-                    const rolesColl = db.collection('roles');
-                    for (const doc of groupDocs) {
-                        await rolesColl.updateOne({ _id: doc._id }, { $set: { ...doc, isSystem: undefined } }, { upsert: true });
+        const db = connection.db;
+        if (!db) throw new Error('DB connection not ready');
+
+        const groupsExists = (await db.listCollections({ name: 'groups' }).toArray()).length > 0;
+        if (groupsExists) {
+            const groupDocs = await db.collection('groups').find({}).toArray();
+            if (groupDocs.length > 0) {
+                const rolesColl = db.collection('roles');
+                let copied = 0;
+                for (const doc of groupDocs) {
+                    const { isSystem, ...rest } = doc as any;
+                    const exists = await rolesColl.findOne({ _id: rest._id });
+                    if (!exists) {
+                        await rolesColl.insertOne(rest);
+                        copied++;
                     }
-                    console.log(`✓ Migrated ${groupDocs.length} documents from 'groups' to 'roles' collection`);
                 }
-                await db.renameCollection('groups', 'groups_backup');
-                console.log('✓ Renamed legacy groups collection to groups_backup');
+                if (copied > 0) console.log(`✓ Copied ${copied} documents from 'groups' to 'roles' collection`);
             }
-            // Migrate user 'group' field → 'role'
-            const usersWithGroup = await db.collection('users').countDocuments({ group: { $exists: true }, role: { $exists: false } });
-            if (usersWithGroup > 0) {
-                await db.collection('users').updateMany(
-                    { group: { $exists: true }, role: { $exists: false } },
-                    [{ $set: { role: '$group' } }]
-                );
-                await db.collection('users').updateMany({ group: { $exists: true } }, { $unset: { group: '' } });
-                console.log(`✓ Migrated ${usersWithGroup} users: renamed 'group' field to 'role'`);
-            }
+            const backupExists = (await db.listCollections({ name: 'groups_backup' }).toArray()).length > 0;
+            if (backupExists) await db.dropCollection('groups_backup');
+            await db.renameCollection('groups', 'groups_backup');
+            console.log('✓ Renamed legacy groups collection to groups_backup');
+        }
+
+        // Migrate user 'group' field → 'role'
+        const usersWithGroup = await db.collection('users').countDocuments({ group: { $exists: true }, role: { $exists: false } });
+        if (usersWithGroup > 0) {
+            await db.collection('users').updateMany(
+                { group: { $exists: true }, role: { $exists: false } },
+                [{ $set: { role: '$group' } }]
+            );
+            await db.collection('users').updateMany({ group: { $exists: true } }, { $unset: { group: '' } });
+            console.log(`✓ Migrated ${usersWithGroup} users: renamed 'group' field to 'role'`);
         }
     } catch (migrationError) {
-        console.warn('Migration step skipped or partially failed:', migrationError);
+        console.error('Migration failed:', migrationError);
     }
 
     // Create Administrators role first
