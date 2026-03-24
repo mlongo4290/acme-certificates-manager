@@ -460,7 +460,7 @@
                         <div class="flex flex-col gap-4">
                             <div class="flex items-center gap-2">
                                 <p-toggleSwitch [(ngModel)]="certificateForm.enabled" inputId="enabled" />
-                                <label for="enabled" class="font-semibold">{{ (certificateForm.enabled ? 'certificates.actions.disableScheduling' : 'certificates.actions.enableScheduling') | translate }}</label>
+                                <label for="enabled" class="font-semibold">{{ (certificateForm.enabled ? 'certificates.actions.schedulingEnabled' : 'certificates.actions.schedulingDisabled') | translate }}</label>
                                 @if (!certificateForm.enabled) {
                                 <span class="text-sm text-orange-500 italic">{{ 'certificates.enabledHint' | translate }}</span>
                                 }

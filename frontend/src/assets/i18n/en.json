@@ -492,6 +492,8 @@
             "enableScheduling": "Enable Scheduling",
             "disable": "Disable Scheduling",
             "disableScheduling": "Disable Scheduling",
+            "schedulingEnabled": "Scheduling enabled",
+            "schedulingDisabled": "Scheduling disabled",
             "dryRun": "Dry Run (validate DNS challenge)",
             "revoke": "Revoke Certificate"
         },
