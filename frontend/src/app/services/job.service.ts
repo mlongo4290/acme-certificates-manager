@@ -64,21 +64,21 @@ export class JobService {
         const es = new EventSource(`${this.apiUrl}/${jobId}/stream?token=${token}`);
         this._openStreams.set(certId, es);
 
-        es.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === 'done' || data.type === 'error') {
-                es.close();
-                this._openStreams.delete(certId);
-                this.removeRunning(certId);
-                this.jobCompleted$.next(certId);
-            }
-        };
-        es.onerror = () => {
+        let finished = false;
+        const finish = () => {
+            if (finished) return;
+            finished = true;
             es.close();
             this._openStreams.delete(certId);
             this.removeRunning(certId);
             this.jobCompleted$.next(certId);
         };
+
+        es.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'done' || data.type === 'error') finish();
+        };
+        es.onerror = () => finish();
     }
 
     /**

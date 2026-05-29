@@ -104,6 +104,7 @@ export class CertificatesComponent implements OnInit, OnDestroy {
     activeJobs: { certId: string }[] = [];
     private jobCompletedSub?: Subscription;
     private lastLazyEvent: any = null;
+    private loadSub: Subscription | null = null;
     private pendingScripts = new Set<string>();
     isCertBusy(certId: string) { return this.activeJobs.some(j => j.certId === certId) || this.pendingScripts.has(certId); }
     activeTabIndex = 0;
@@ -234,6 +235,7 @@ export class CertificatesComponent implements OnInit, OnDestroy {
 
     onLazyLoad(event: any) {
         this.lastLazyEvent = event;
+        this.loadSub?.unsubscribe();
         this.loading = true;
 
         const page = event.first / event.rows;
@@ -289,13 +291,13 @@ export class CertificatesComponent implements OnInit, OnDestroy {
             });
         }
 
-        this.certificateService.getAllCertificates(page, limit, sortField, sortOrder, filters).subscribe({
+        this.loadSub = this.certificateService.getAllCertificates(page, limit, sortField, sortOrder, filters).subscribe({
             next: (response) => {
                 this.certificates = response.data;
                 this.totalRecords = response.totalRecords;
                 this.loading = false;
             },
-            error: (error) => {
+            error: (_error) => {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translateService.instant('common.error'),
@@ -827,7 +829,7 @@ export class CertificatesComponent implements OnInit, OnDestroy {
             next: (response) => {
                 this.postIssueScripts = response.data;
             },
-            error: (error) => {
+            error: (_error) => {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translateService.instant('common.error'),
@@ -842,7 +844,7 @@ export class CertificatesComponent implements OnInit, OnDestroy {
             next: (response) => {
                 this.sshKeys = response.data;
             },
-            error: (error) => {
+            error: (_error) => {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translateService.instant('common.error'),
@@ -1191,7 +1193,7 @@ export class CertificatesComponent implements OnInit, OnDestroy {
                     detail: this.translateService.instant('certificates.success.downloaded')
                 });
             })
-            .catch(error => {
+            .catch(_error => {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translateService.instant('common.error'),
