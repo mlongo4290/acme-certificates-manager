@@ -103,7 +103,9 @@ export class CertificatesComponent implements OnInit, OnDestroy {
     // Tracks running jobs for per-cert busy state
     activeJobs: { certId: string }[] = [];
     private jobCompletedSub?: Subscription;
-    isCertBusy(certId: string) { return this.activeJobs.some(j => j.certId === certId); }
+    private lastLazyEvent: any = null;
+    private pendingScripts = new Set<string>();
+    isCertBusy(certId: string) { return this.activeJobs.some(j => j.certId === certId) || this.pendingScripts.has(certId); }
     activeTabIndex = 0;
 
     get dateFormat(): string {
@@ -231,6 +233,7 @@ export class CertificatesComponent implements OnInit, OnDestroy {
     }
 
     onLazyLoad(event: any) {
+        this.lastLazyEvent = event;
         this.loading = true;
 
         const page = event.first / event.rows;
@@ -336,11 +339,8 @@ export class CertificatesComponent implements OnInit, OnDestroy {
      * Reload table data preserving current state (sort, filters, pagination)
      */
     reloadTableData() {
-        if (this.table) {
-            // Get current lazy load event state from table
-            const lazyLoadEvent = this.table.createLazyLoadMetadata();
-            // Trigger lazy load with current state
-            this.onLazyLoad(lazyLoadEvent);
+        if (this.lastLazyEvent) {
+            this.onLazyLoad(this.lastLazyEvent);
         }
     }
 
@@ -699,7 +699,7 @@ export class CertificatesComponent implements OnInit, OnDestroy {
             acceptLabel: this.translateService.instant('yes'),
             rejectLabel: this.translateService.instant('no'),
             accept: () => {
-                this.saving = true;
+                this.pendingScripts.add(certificate._id!);
                 this.certificateService.testPostIssueScript(certificate._id!).subscribe({
                     next: (result) => {
                         if (result.success) {
@@ -725,15 +725,15 @@ export class CertificatesComponent implements OnInit, OnDestroy {
                                 life: 10000
                             });
                         }
-                        this.saving = false;
+                        this.pendingScripts.delete(certificate._id!);
                     },
-                    error: (error) => {
+                    error: () => {
                         this.messageService.add({
                             severity: 'error',
                             summary: this.translateService.instant('common.error'),
-                            detail: error.error?.message || this.translateService.instant('scripts.errors.executionFailed')
+                            detail: this.translateService.instant('scripts.errors.executionFailed')
                         });
-                        this.saving = false;
+                        this.pendingScripts.delete(certificate._id!);
                     }
                 });
             }
