@@ -237,60 +237,7 @@ export class CertificatesComponent implements OnInit, OnDestroy {
         this.lastLazyEvent = event;
         this.loadSub?.unsubscribe();
         this.loading = true;
-
-        const page = event.first / event.rows;
-        const limit = event.rows;
-        const sortField = event.sortField || 'createdAt';
-        const sortOrder = event.sortOrder || -1;
-
-        // Extract filters from PrimeNG event - same logic as activity-log
-        const filters: any = {};
-        if (event.filters) {
-            Object.keys(event.filters).forEach(field => {
-                const filterData = event.filters[field];
-                if (filterData) {
-                    if (Array.isArray(filterData)) {
-                        // Multiple filters on same field
-                        const constraints = filterData
-                            .filter(f => f && f.value !== null && f.value !== undefined && f.value !== '')
-                            .map(f => ({
-                                value: f.value,
-                                matchMode: f.matchMode || 'contains'
-                            }));
-                        if (constraints.length > 0) {
-                            filters[field] = {
-                                operator: filterData[0]?.operator || 'and',
-                                constraints
-                            };
-                        }
-                    } else if (filterData.value !== null && filterData.value !== undefined && filterData.value !== '') {
-                        // Single filter
-                        filters[field] = {
-                            operator: filterData.operator || 'and',
-                            constraints: [{
-                                value: filterData.value,
-                                matchMode: filterData.matchMode || 'contains'
-                            }]
-                        };
-                    } else if (filterData.constraints) {
-                        // Filter with constraints array and operator
-                        const constraints = filterData.constraints
-                            .filter((f: any) => f && f.value !== null && f.value !== undefined && f.value !== '')
-                            .map((f: any) => ({
-                                value: f.value,
-                                matchMode: f.matchMode || 'contains'
-                            }));
-                        if (constraints.length > 0) {
-                            filters[field] = {
-                                operator: filterData.operator || 'and',
-                                constraints
-                            };
-                        }
-                    }
-                }
-            });
-        }
-
+        const { page, limit, sortField, sortOrder, filters } = this.buildQueryFromEvent(event);
         this.loadSub = this.certificateService.getAllCertificates(page, limit, sortField, sortOrder, filters).subscribe({
             next: (response) => {
                 this.certificates = response.data;
@@ -306,6 +253,36 @@ export class CertificatesComponent implements OnInit, OnDestroy {
                 this.loading = false;
             }
         });
+    }
+
+    private buildQueryFromEvent(event: any) {
+        const page = event.first / event.rows;
+        const limit = event.rows;
+        const sortField = event.sortField || 'createdAt';
+        const sortOrder = event.sortOrder || -1;
+        const filters: any = {};
+        if (event.filters) {
+            Object.keys(event.filters).forEach(field => {
+                const filterData = event.filters[field];
+                if (!filterData) return;
+                if (Array.isArray(filterData)) {
+                    const constraints = filterData
+                        .filter(f => f && f.value !== null && f.value !== undefined && f.value !== '')
+                        .map(f => ({ value: f.value, matchMode: f.matchMode || 'contains' }));
+                    if (constraints.length > 0)
+                        filters[field] = { operator: filterData[0]?.operator || 'and', constraints };
+                } else if (filterData.value !== null && filterData.value !== undefined && filterData.value !== '') {
+                    filters[field] = { operator: filterData.operator || 'and', constraints: [{ value: filterData.value, matchMode: filterData.matchMode || 'contains' }] };
+                } else if (filterData.constraints) {
+                    const constraints = filterData.constraints
+                        .filter((f: any) => f && f.value !== null && f.value !== undefined && f.value !== '')
+                        .map((f: any) => ({ value: f.value, matchMode: f.matchMode || 'contains' }));
+                    if (constraints.length > 0)
+                        filters[field] = { operator: filterData.operator || 'and', constraints };
+                }
+            });
+        }
+        return { page, limit, sortField, sortOrder, filters };
     }
 
     private startJob(certId: string, domain: string, type: string) {
@@ -341,9 +318,14 @@ export class CertificatesComponent implements OnInit, OnDestroy {
      * Reload table data preserving current state (sort, filters, pagination)
      */
     reloadTableData() {
-        if (this.lastLazyEvent) {
-            this.onLazyLoad(this.lastLazyEvent);
-        }
+        if (!this.lastLazyEvent) return;
+        const { page, limit, sortField, sortOrder, filters } = this.buildQueryFromEvent(this.lastLazyEvent);
+        this.certificateService.getAllCertificates(page, limit, sortField, sortOrder, filters).subscribe({
+            next: (response) => {
+                this.certificates = response.data;
+                this.totalRecords = response.totalRecords;
+            }
+        });
     }
 
     showCreateDialog() {
